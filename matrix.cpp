@@ -104,8 +104,9 @@ Matrix Matrix::Solve(const Matrix* rhs){
 	for(int y = height-1; y >= 0; y--){
 		double sum = 0.0;
 		//technically this is an x coordinate
-		for(int i = width-1; i > y; i--)
+		for(int i = width-1; i > indexes[y]; i--)
 			sum += answer.matrix[i]*matrix[indexes[y]*width + i];
+
 		answer.matrix[y] = rhs->matrix[indexes[y]] - sum;
 	}
 	

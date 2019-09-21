@@ -38,9 +38,9 @@ int main(int argc, char* argv[]){
 	b = A1.GetRHSVector();
 	auto b1 = A1*x;
 	x.Print();
-	printf("\n");
+	printf("vector we want:\n");
 	b.Print();
-	printf("\n");
+	printf("vector Ax=\n");
 	b1.Print();
 
     t = clock()-t;

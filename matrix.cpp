@@ -13,11 +13,13 @@ void Matrix::FillMatrix(){
 }
 
 void Matrix::Print(int size_) const{
-    if(size_ > width) size_ = width;
-    if(size_ > height) size_ = height;
+	int sizeX = size_;
+	int sizeY = size_;
+    if(sizeX > width) sizeX = width;
+    if(sizeY > height) sizeY = height;
 
-    for(int y = 0; y < height; y++){
-        for(int x = 0; x < width; x++)
+    for(int y = 0; y < sizeY; y++){
+        for(int x = 0; x < sizeX; x++)
             printf("%lf ", matrix[x + y*width]);
         printf("\n");
     }
@@ -51,8 +53,65 @@ Matrix Matrix::GetRHSVector(){
 	return result;
 }
 
-Matrix Matrix::Solve(const Matrix& rhs){
+Matrix Matrix::Solve(const Matrix* rhs){
+	int offset = 0;
+	//create a permutation, so we dont take time to actually move elements in the matrix
+	auto indexes = new int[width];
+	for(int i = 0; i < width; i++)
+		indexes[i] = i;
 
+	//when we complete a step of Gaussian algorithm, we should apply it again to the matrix of size m-1. 
+	//For that we will just think of the next element on the diagonal as the first one.
+	while(offset != width){
+		//find the largest element in the column, save it's index
+		int minimal_length_index = 0;
+		double max_length = matrix[0];
+		for(int y = offset; y < height; y++){
+			double k = matrix[offset+indexes[y]*width];
+			if(k>max_length){
+				max_length = k;
+				minimal_length_index = y;
+			} 
+		}
+		
+		//now we can swap the top and the lowest line
+		int tempIndex = indexes[offset];
+		indexes[offset] = indexes[minimal_length_index];
+		indexes[minimal_length_index] = tempIndex;
+
+		//now we want to normalize our line using the first element
+		//this will make the first element of current top line = 1
+		for(int x = offset; x < width; x++){
+			matrix[indexes[offset]*width + x] /= max_length;
+			rhs->matrix[indexes[offset]] /= max_length;
+		}
+
+		//substract the top line from all the lines below it
+		for(int y = offset+1; y < height; y++){
+			for(int x = offset; x < width; x++)
+				matrix[x+indexes[y]*width] -= matrix[x+indexes[offset]];
+			rhs->matrix[indexes[y]] -= rhs->matrix[indexes[offset]];
+		}	
+
+		//repeat for the sub matrix
+		offset += 1;
+	}
+
+	Matrix answer;
+	answer.CreateMatrix(1, height);
+
+	//at this point we have an upper diagonal matrix and we can get the answer
+	for(int y = height-1; y >= 0; y--){
+		double sum = 0.0;
+		//technically this is an x coordinate
+		for(int i = width-1; i > y; i--)
+			sum += answer.matrix[i]*matrix[indexes[y]*width + i];
+		answer.matrix[y] = rhs->matrix[indexes[y]] - sum;
+	}
+	
+	delete[] indexes;
+
+	return answer;
 }
 
 MatrixException Matrix::CreateMatrix(int width_, int height_){

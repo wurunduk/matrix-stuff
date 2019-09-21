@@ -18,7 +18,7 @@ class Matrix{
 
 	Matrix GetRHSVector();
 
-	Matrix Solve(const Matrix& rhs);
+	Matrix Solve(const Matrix* rhs);
 
     MatrixException CreateMatrix(int width_, int height_);
     MatrixException CreateMatrix(int width_, int height_, const char* file_name);

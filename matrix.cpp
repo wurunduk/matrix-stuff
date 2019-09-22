@@ -39,6 +39,7 @@ double Matrix::Length() const{
 	return max;
 }
 
+
 Matrix Matrix::GetRHSVector(){
 	Matrix result;
 	result.CreateMatrix(1, height);
@@ -56,16 +57,17 @@ Matrix Matrix::GetRHSVector(){
 Matrix Matrix::Solve(const Matrix* rhs){
 	int offset = 0;
 	//create a permutation, so we dont take time to actually move elements in the matrix
-	auto indexes = new int[width];
-	for(int i = 0; i < width; i++)
+	auto indexes = new int[height];
+	for(int i = 0; i < height; i++)
 		indexes[i] = i;
 
 	//when we complete a step of Gaussian algorithm, we should apply it again to the matrix of size m-1. 
 	//For that we will just think of the next element on the diagonal as the first one.
 	while(offset != width){
-		//find the largest element in the column, save it's index
-		int minimal_length_index = 0;
-		double max_length = matrix[0];
+		//we want to find the element with lowest inverse length
+		//with numbers it will be just 1/k, so we can search for the largest element in the column
+		int minimal_length_index = offset;
+		double max_length = matrix[offset + indexes[offset]*width];
 		for(int y = offset; y < height; y++){
 			double k = matrix[offset+indexes[y]*width];
 			if(k>max_length){
@@ -82,16 +84,20 @@ Matrix Matrix::Solve(const Matrix* rhs){
 		//now we want to normalize our line using the first element
 		//this will make the first element of current top line = 1
 		for(int x = offset; x < width; x++){
-			matrix[indexes[offset]*width + x] /= max_length;
+			matrix[x+indexes[offset]*width] /= max_length;
 			rhs->matrix[indexes[offset]] /= max_length;
 		}
 
 		//substract the top line from all the lines below it
 		for(int y = offset+1; y < height; y++){
-			for(int x = offset; x < width; x++)
-				matrix[x+indexes[y]*width] -= matrix[x+indexes[offset]];
-			rhs->matrix[indexes[y]] -= rhs->matrix[indexes[offset]];
+			rhs->matrix[indexes[y]] -= rhs->matrix[indexes[offset]]*matrix[offset+indexes[y]*width];
+			for(int x = width-1; x >= offset; x--){
+				matrix[x+indexes[y]*width] -= matrix[x+indexes[offset]*width]*matrix[offset+indexes[y]*width];
+			}
 		}	
+
+		printf("Step %d\n", offset);
+		Print(12);
 
 		//repeat for the sub matrix
 		offset += 1;

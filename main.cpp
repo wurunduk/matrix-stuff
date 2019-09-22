@@ -31,7 +31,7 @@ int main(int argc, char* argv[]){
 	ReportError(result);
 	if(result != NO_ERROR) return 2;
 
-	A.Print();
+	A.Print(12);
 	auto b = A.GetRHSVector();
 	auto x = A.Solve(&b);
 	//got the solution, let's check how close it is now

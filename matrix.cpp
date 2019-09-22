@@ -1,6 +1,8 @@
 #include "matrix.h"
 #include "matrix_exception.h"
 
+#include <cmath>
+
 Matrix::Matrix(){
     width = 0;
     height = 0;
@@ -35,12 +37,25 @@ void Matrix::Print(int size_) const{
     }
 }
 
+void Matrix::Print(int* indexes, int size_) const{
+	int sizeX = size_;
+	int sizeY = size_;
+    if(sizeX > width) sizeX = width;
+    if(sizeY > height) sizeY = height;
+
+    for(int y = 0; y < sizeY; y++){
+        for(int x = 0; x < sizeX; x++)
+            printf("%lf ", matrix[x + indexes[y]*width]);
+        printf("\n");
+    }
+}
+
 double Matrix::Length() const{
 	double max, sum;
 	for(int y = 0; y < width; y++){
 		sum = 0;
 		for(int x = 0; x < height; x++){
-			sum += matrix[x + y*width];
+			sum += fabs(matrix[x + y*width]);
 		}
 		if(y==0) max = sum;
 		if(sum > max) max = sum;
@@ -109,8 +124,6 @@ Matrix Matrix::Solve(const Matrix* rhs){
 		offset += 1;
 	}
 
-	
-
 	Matrix answer;
 	answer.CreateMatrix(1, height);
 
@@ -118,8 +131,9 @@ Matrix Matrix::Solve(const Matrix* rhs){
 	for(int y = height-1; y >= 0; y--){
 		double sum = 0.0;
 		//technically this is an x coordinate
-		for(int i = width-1; i > indexes[y]; i--)
+		for(int i = width-1; i > y; i--){
 			sum += answer.matrix[i]*matrix[indexes[y]*width + i];
+		}
 
 		answer.matrix[y] = rhs->matrix[indexes[y]] - sum;
 	}

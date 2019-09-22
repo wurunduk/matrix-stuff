@@ -15,6 +15,7 @@ class Matrix{
 	void FillMatrix();	
 	Matrix GetAnswerMatrix();
     void Print(int size_ = 10) const;
+	void Print(int* indexes, int size_ = 10) const;
 	double Length() const;
 	double VectorLength() const;
 

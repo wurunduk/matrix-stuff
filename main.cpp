@@ -39,6 +39,13 @@ int main(int argc, char* argv[]){
 
 	auto Ax = A_original*x;
 
+	printf("Solution found: \n");
+	x.Print();
+	printf("Resulting ax=b vecotr: \n");
+	Ax.Print();	
+	printf("Intendent b vector: \n");
+	b_original.Print();
+
 	double residual = (Ax-b).Length();
 	double error = (x-A_original.GetAnswerMatrix()).Length();
 

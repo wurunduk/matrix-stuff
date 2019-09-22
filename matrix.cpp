@@ -85,23 +85,28 @@ Matrix Matrix::Solve(const Matrix* rhs){
 		//this will make the first element of current top line = 1
 		for(int x = offset; x < width; x++){
 			matrix[x+indexes[offset]*width] /= max_length;
-			rhs->matrix[indexes[offset]] /= max_length;
 		}
+		rhs->matrix[indexes[offset]] /= max_length;
+
+		printf("Step %d\n", offset);
+		Print(12);
+		rhs->Print(12);
 
 		//substract the top line from all the lines below it
 		for(int y = offset+1; y < height; y++){
+			printf("%d index %d, %d %d, %lf - %lf * %lf\n", y, indexes[y], offset, indexes[offset], rhs->matrix[indexes[y]], rhs->matrix[indexes[offset]], matrix[offset+indexes[y]*width]);
 			rhs->matrix[indexes[y]] -= rhs->matrix[indexes[offset]]*matrix[offset+indexes[y]*width];
 			for(int x = width-1; x >= offset; x--){
 				matrix[x+indexes[y]*width] -= matrix[x+indexes[offset]*width]*matrix[offset+indexes[y]*width];
 			}
-		}	
-
-		printf("Step %d\n", offset);
-		Print(12);
+		}
+		rhs->Print(12);
 
 		//repeat for the sub matrix
 		offset += 1;
 	}
+
+	
 
 	Matrix answer;
 	answer.CreateMatrix(1, height);

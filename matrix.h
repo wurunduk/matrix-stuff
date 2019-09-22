@@ -13,8 +13,10 @@ class Matrix{
     Matrix();
 
 	void FillMatrix();	
+	Matrix GetAnswerMatrix();
     void Print(int size_ = 10) const;
 	double Length() const;
+	double VectorLength() const;
 
 	Matrix GetRHSVector();
 

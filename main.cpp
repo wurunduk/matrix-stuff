@@ -11,7 +11,7 @@ int main(int argc, char* argv[]){
     
     char* file_name = nullptr;
     int matrix_size = 0;
-    Matrix A, A1;    
+    Matrix A, A_original;    
 
     if(!(argc==3 || argc==2) || !(matrix_size = atoi(argv[1]))){
         PrintUsage(argv[0]);        
@@ -26,22 +26,23 @@ int main(int argc, char* argv[]){
     printf("loading file %s with matrix size %d\n", file_name, matrix_size);
 
     MatrixException result = A.CreateMatrix(matrix_size, matrix_size, file_name);
-	MatrixException result2 = A1.CreateMatrix(matrix_size, matrix_size, file_name);
+	MatrixException result2 = A_original.CreateMatrix(matrix_size, matrix_size, file_name);
 
 	ReportError(result);
-	if(result != NO_ERROR) return 2;
+	ReportError(result2);
+	if(result != NO_ERROR || result2 != NO_ERROR) return 2;
 
-	A.Print(12);
 	auto b = A.GetRHSVector();
+	auto b_original = A_original.GetRHSVector();
+
 	auto x = A.Solve(&b);
-	//got the solution, let's check how close it is now
-	b = A1.GetRHSVector();
-	auto b1 = A1*x;
-	x.Print();
-	printf("vector we want:\n");
-	b.Print();
-	printf("vector Ax=\n");
-	b1.Print();
+
+	auto Ax = A_original*x;
+
+	double residual = (Ax-b).Length();
+	double error = (x-A_original.GetAnswerMatrix()).Length();
+
+	printf("residual= %e\nerror= %e\n", residual, error);
 
     t = clock()-t;
     printf("Elapsed time: %f\n", static_cast<float>(t)/CLOCKS_PER_SEC);

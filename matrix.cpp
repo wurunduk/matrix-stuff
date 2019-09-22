@@ -12,6 +12,16 @@ void Matrix::FillMatrix(){
 			matrix[x + y*width] = 1.0/(x+y+1.0);
 }
 
+Matrix Matrix::GetAnswerMatrix(){
+	Matrix answer;
+	answer.CreateMatrix(1, width);
+
+	for(int i = 0; i < width; i++)
+		answer.matrix[i] = ((i+1)&1);
+
+	return answer;
+}
+
 void Matrix::Print(int size_) const{
 	int sizeX = size_;
 	int sizeY = size_;
@@ -38,7 +48,6 @@ double Matrix::Length() const{
 
 	return max;
 }
-
 
 Matrix Matrix::GetRHSVector(){
 	Matrix result;
@@ -88,19 +97,13 @@ Matrix Matrix::Solve(const Matrix* rhs){
 		}
 		rhs->matrix[indexes[offset]] /= max_length;
 
-		printf("Step %d\n", offset);
-		Print(12);
-		rhs->Print(12);
-
 		//substract the top line from all the lines below it
 		for(int y = offset+1; y < height; y++){
-			printf("%d index %d, %d %d, %lf - %lf * %lf\n", y, indexes[y], offset, indexes[offset], rhs->matrix[indexes[y]], rhs->matrix[indexes[offset]], matrix[offset+indexes[y]*width]);
 			rhs->matrix[indexes[y]] -= rhs->matrix[indexes[offset]]*matrix[offset+indexes[y]*width];
 			for(int x = width-1; x >= offset; x--){
 				matrix[x+indexes[y]*width] -= matrix[x+indexes[offset]*width]*matrix[offset+indexes[y]*width];
 			}
 		}
-		rhs->Print(12);
 
 		//repeat for the sub matrix
 		offset += 1;

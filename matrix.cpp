@@ -3,59 +3,91 @@
 
 #include <cmath>
 
-Matrix::Matrix(){
-    width = 0;
-    height = 0;
+void Matrix::FillMatrix(double* m, const int size){
+	for(int y = 0; y < size; y++)
+		for(int x = 0; x < size; x++)
+			m[y*size + x] = 1./(x+y+1);
 }
 
-void Matrix::FillMatrix(){
-	for(int y = 0; y < height; y++)
-		for(int x = 0; x < width; x++)
-			matrix[x + y*width] = 1.0/(x+y+1.0);
+void Matrix::GetAnswerVector(double* vector, const int size){
+	for(int i = 0; i < size; i++)
+		vector[i] = ((i+1)&1);
 }
 
-Matrix Matrix::GetAnswerMatrix(){
-	Matrix answer;
-	answer.CreateMatrix(1, width);
+void Matrix::Print(const double* matrix, const int size, int print_size){
+	int n = size;
+    if(n > print_size) n = print_size;
 
-	for(int i = 0; i < width; i++)
-		answer.matrix[i] = ((i+1)&1);
-
-	return answer;
-}
-
-void Matrix::Print(int size_) const{
-	int sizeX = size_;
-	int sizeY = size_;
-    if(sizeX > width) sizeX = width;
-    if(sizeY > height) sizeY = height;
-
-    for(int y = 0; y < sizeY; y++){
-        for(int x = 0; x < sizeX; x++)
-            printf("%lf ", matrix[x + y*width]);
+    for(int y = 0; y < n-1; y++){
+        for(int x = 0; x < n-1; x++)
+            printf("%lf ", matrix[x + y*size]);
+		printf("... %lf ", matrix[size-1 + y*size]);
         printf("\n");
     }
+
+	printf("...\n");
+
+	for(int x = 0; x < n-1; x++)
+            printf("%lf ", matrix[x + (size-1)*size]);
+	
+	printf("... %lf ", matrix[size*size-1]);
+    printf("\n");
+
 }
 
-void Matrix::Print(int* indexes, int size_) const{
-	int sizeX = size_;
-	int sizeY = size_;
-    if(sizeX > width) sizeX = width;
-    if(sizeY > height) sizeY = height;
+void Matrix::Print(const double* matrix, const int size, const int* indexes, int print_size){
+	int n = size;
+    if(n > print_size) n = print_size;
 
-    for(int y = 0; y < sizeY; y++){
-        for(int x = 0; x < sizeX; x++)
-            printf("%lf ", matrix[x + indexes[y]*width]);
+    for(int y = 0; y < n-1; y++){
+        for(int x = 0; x < n-1; x++)
+            printf("%lf ", matrix[x + indexes[y]*size]);
+		printf("... %lf ", matrix[size-1 + indexes[y]*size]);
         printf("\n");
     }
+
+	printf("...\n");
+
+	for(int x = 0; x < n-1; x++)
+            printf("%lf ", matrix[x + indexes[(size-1)]*size]);
+	
+	printf("... %lf ", matrix[indexes[size-1]*size + (size-1)]);
+    printf("\n");
+
 }
 
-double Matrix::Length() const{
+void Matrix::PrintVector(const double* vector, const int size, int print_size){
+	int n = size;
+    if(n > print_size) n = print_size;
+
+    for(int y = 0; y < n-1; y++){
+        printf("%lf", vector[y]);
+        printf("\n");
+    }
+
+	printf("...\n");
+    printf("%lf\n", vector[size-1]);
+}
+
+void Matrix::PrintVector(const double* vector, const int size, const int* indexes, int print_size){
+	int n = size;
+    if(n > print_size) n = print_size;
+
+    for(int y = 0; y < n-1; y++){
+        printf("%lf", vector[indexes[y]]);
+        printf("\n");
+    }
+
+	printf("...\n");
+    printf("%lf\n", vector[indexes[size-1]]);
+}
+
+double Matrix::Length(const double* matrix, const int size){
 	double max, sum;
-	for(int y = 0; y < width; y++){
+	for(int y = 0; y < size; y++){
 		sum = 0;
-		for(int x = 0; x < height; x++){
-			sum += fabs(matrix[x + y*width]);
+		for(int x = 0; x < size; x++){
+			sum += fabs(matrix[x + y*size]);
 		}
 		if(y==0) max = sum;
 		if(sum > max) max = sum;
@@ -64,24 +96,29 @@ double Matrix::Length() const{
 	return max;
 }
 
-Matrix Matrix::GetRHSVector(){
-	Matrix result;
-	result.CreateMatrix(1, height);
-
-	for(int y = 0; y < height; y++){
-		double sum = 0;
-		for(int x = 0; x < width; x+=2){
-			sum += matrix[x + y*width];
-		}
-		result.matrix[y] = sum;
+double Matrix::LengthVector(const double* vector, const int size){
+	double sum=0;
+	for(int x = 0; x < size; x++){
+		sum += fabs(vector[x]);
 	}
-	return result;
+
+	return sum;
 }
 
-Matrix Matrix::Solve(const Matrix* rhs){
+void Matrix::GetRHSVector(const double* matrix, double* RHSVector, const int size){
+	for(int y = 0; y < size; y++){
+		double sum = 0;
+		for(int x = 0; x < size; x+=2){
+			sum += matrix[x + y*size];
+		}
+		RHSVector[y] = sum;
+	}
+}
+/*
+void Matrix::Solve(const Matrix* rhs, Matrix* answer){
 	int offset = 0;
 	//create a permutation, so we dont take time to actually move elements in the matrix
-	auto indexes = new int[height];
+	int* indexes = reinterpret_cast<int*>(malloc(height*sizeof(int)));
 	for(int i = 0; i < height; i++)
 		indexes[i] = i;
 
@@ -107,10 +144,11 @@ Matrix Matrix::Solve(const Matrix* rhs){
 
 		//now we want to normalize our line using the first element
 		//this will make the first element of current top line = 1
+		double k = 1.0/max_length;
 		for(int x = offset; x < width; x++){
-			matrix[x+indexes[offset]*width] /= max_length;
+			matrix[x+indexes[offset]*width] *= k;
 		}
-		rhs->matrix[indexes[offset]] /= max_length;
+		rhs->matrix[indexes[offset]] *= k;
 
 		//substract the top line from all the lines below it
 		for(int y = offset+1; y < height; y++){
@@ -124,48 +162,40 @@ Matrix Matrix::Solve(const Matrix* rhs){
 		offset += 1;
 	}
 
-	Matrix answer;
-	answer.CreateMatrix(1, height);
-
 	//at this point we have an upper diagonal matrix and we can get the answer
 	for(int y = height-1; y >= 0; y--){
 		double sum = 0.0;
 		//technically this is an x coordinate
 		for(int i = width-1; i > y; i--){
-			sum += answer.matrix[i]*matrix[indexes[y]*width + i];
+			sum += answer->matrix[i]*matrix[indexes[y]*width + i];
 		}
 
-		answer.matrix[y] = rhs->matrix[indexes[y]] - sum;
+		answer->matrix[y] = rhs->matrix[indexes[y]] - sum;
 	}
 	
-	delete[] indexes;
+	free(indexes);
+}*/
 
-	return answer;
-}
+MatrixException Matrix::CreateVector(double** vector, const int size){
+    *vector = new double[size];
+    if(!*vector) return MatrixException::NOT_ENOUGH_MEMORY;
 
-MatrixException Matrix::CreateMatrix(int width_, int height_){
-    width = width_;
-    height = height_;
-    double* temp = new double[height_*width_];
-    if(!temp) return MatrixException::NOT_ENOUGH_MEMORY;
-    
-    matrix = std::unique_ptr<double[]>(temp);
     return NO_ERROR;
 }
 
-MatrixException Matrix::CreateMatrix(int width_, int height_, const char* file_name){
-    //if no name was supplied, we want to initialize and generate the matrix
-    MatrixException res = CreateMatrix(width_, height_);
-    if(file_name == nullptr){
-		if(res == NO_ERROR) FillMatrix();
-        return res;
-    }
-	//initialize matrix if we are reading from file
-    else if((res = CreateMatrix(width_, height_)) && res != NO_ERROR) return res;
+MatrixException Matrix::CreateMatrix(double** matrix, const int size){
+    *matrix = new double[size*size];
+    if(!*matrix) return MatrixException::NOT_ENOUGH_MEMORY;
 
+    return NO_ERROR;
+}
+
+MatrixException Matrix::CreateMatrix(double** matrix, const int size, const char* file_name){
+    //if no name was supplied, we want to initialize and generate the matrix
+    MatrixException res = CreateMatrix(matrix, size);
 	if(res == NO_ERROR){
 		if(file_name == nullptr) {
-			FillMatrix();
+			FillMatrix(*matrix, size);
 			return NO_ERROR;
 		}
 	}
@@ -174,8 +204,8 @@ MatrixException Matrix::CreateMatrix(int width_, int height_, const char* file_n
     FILE* f = fopen(file_name, "r");
     if(!f) return CAN_NOT_OPEN;
     
-    for(int i = 0; i < width_*height_; i++){
-        if(fscanf(f, "%lf", &matrix[i]) != 1){
+    for(int i = 0; i < size*size; i++){
+        if(fscanf(f, "%lf", &(*matrix)[i]) != 1){
             fclose(f);
             return FILE_CORRUPT;
         }
@@ -184,7 +214,25 @@ MatrixException Matrix::CreateMatrix(int width_, int height_, const char* file_n
     return NO_ERROR;
 }
 
-Matrix Matrix::operator-(const Matrix& m){
+double* Matrix::MultiplyMatrixByVector(const double* matrix, const double* vector, double* answer, const int size){    
+    for(int y = 0; y < size; y++){
+		double sum = 0;
+        for(int x = 0; x < size; x++){
+            sum += matrix[y*size + x]*vector[x];
+        }
+		answer[y] = sum;
+    }
+	return answer;
+}
+
+double* Matrix::SubstractVectors(double* v1, const double* v2, const int size){
+	for(int x = 0; x < size; x++)
+		v1[x] -= v2[x];
+
+	return v1;
+}
+
+/*Matrix Matrix::operator-(const Matrix& m){
 	Matrix result;
 	result.CreateMatrix(m.width, m.height);
 
@@ -193,8 +241,9 @@ Matrix Matrix::operator-(const Matrix& m){
 		return result;
 	}
 
-	for(int i = 0; i < m.height*m.width; i++)
+	for(int i = 0; i < m.height*m.width; i++){
 			result.matrix[i] = this->matrix[i] - m.matrix[i];
+	}
 
 	return result;
 }
@@ -213,7 +262,7 @@ Matrix Matrix::operator*(const Matrix& m){
         for(int x = 0; x < m.width; x++){
             double sum = 0;
             //i - x coordinate in this matrix, y coordinate in matrix m
-            for(int i = 0; i < this->width/*we know m.height=this.width at this moment*/; i++)
+            for(int i = 0; i < this->width; i++)
                 sum += this->matrix[y*this->width + i]*m.matrix[x + i*m.width];
             result.matrix[x + y*result.width] = sum;
         }
@@ -234,7 +283,7 @@ Matrix& Matrix::operator*=(const double& k){
     for(int i = 0; i < this->width*this->height; i++)
         matrix[i]*=k;
     return *this;
-}
+}*/
 
 
 

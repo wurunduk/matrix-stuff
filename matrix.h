@@ -4,33 +4,33 @@
 #include "matrix_exception.h"
 #include <memory>
 
-class Matrix{
-    public:
-    std::unique_ptr<double[]> matrix;
-    int width;
-    int height;
+namespace Matrix{
+	void FillMatrix(double* matrix, const int size);	
+	void GetAnswerVector(double* vector, const int size);
+    void Print(const double* matrix, const int size, int print_size = 10);
+	void Print(const double* matrix, const int size, const int* indexes, int print_size = 10);
+	void PrintVector(const double* vector, const int size, int print_size = 10);
+	void PrintVector(const double* vector, const int size, const int* indexes, int print_size = 10);
+	double Length(const double* matrix, const int size);
+	double LengthVector(const double* vector, const int size);
 
-    Matrix();
+	void GetRHSVector(const double* matrix, double* RHSVector, const int size);
 
-	void FillMatrix();	
-	Matrix GetAnswerMatrix();
-    void Print(int size_ = 10) const;
-	void Print(int* indexes, int size_ = 10) const;
-	double Length() const;
-	double VectorLength() const;
+	//void Solve(const double* rhs, const double* RHSVector, const double* answer, const int size);
 
-	Matrix GetRHSVector();
+	MatrixException CreateVector(double** vector, const int size);
+    MatrixException CreateMatrix(double** matrix, const int size);
+    MatrixException CreateMatrix(double** matrix, const int size, const char* file_name);
 
-	Matrix Solve(const Matrix* rhs);
+	double* MultiplyMatrixByVector(const double* matrix, const double* vector, double* answer, const int size);	
+	
+	double* SubstractVectors(double* v1, const double* v2, const int size);
 
-    MatrixException CreateMatrix(int width_, int height_);
-    MatrixException CreateMatrix(int width_, int height_, const char* file_name);
+	//Matrix operator-(const Matrix& m);
 
-	Matrix operator-(const Matrix& m);
-
-    Matrix operator*(const Matrix& m);
-    Matrix operator*(const double& k);
-    Matrix& operator*=(const double& k);
+    //Matrix operator*(const Matrix& m);
+    //Matrix operator*(const double& k);
+    //Matrix& operator*=(const double& k);
 };
 
 #endif

@@ -11,7 +11,7 @@ int main(int argc, char* argv[]){
     
     char* file_name = nullptr;
     int matrix_size = 0;
-    Matrix A, A_original;    
+	double *A, *x, *b, *A1, *x1, *b1, *Ax;
 
     if(!(argc==3 || argc==2) || !(matrix_size = atoi(argv[1]))){
         PrintUsage(argv[0]);        
@@ -20,38 +20,52 @@ int main(int argc, char* argv[]){
 
     if(argc == 3) file_name = argv[2];
 
-
-    auto t = clock();
-
     printf("loading file %s with matrix size %d\n", file_name, matrix_size);
 
-    MatrixException result = A.CreateMatrix(matrix_size, matrix_size, file_name);
-	MatrixException result2 = A_original.CreateMatrix(matrix_size, matrix_size, file_name);
+	auto t = clock();
+	
+    MatrixException r1 = Matrix::CreateMatrix(&A, matrix_size, file_name);
+	MatrixException r2 = Matrix::CreateMatrix(&A1, matrix_size, file_name);
 
-	ReportError(result);
-	ReportError(result2);
-	if(result != NO_ERROR || result2 != NO_ERROR) return 2;
+	MatrixException r3 = Matrix::CreateVector(&b, matrix_size);
+	MatrixException r4 = Matrix::CreateVector(&b1, matrix_size);
 
-	auto b = A.GetRHSVector();
-	auto b_original = A_original.GetRHSVector();
+	MatrixException r5 = Matrix::CreateVector(&x, matrix_size);
+	MatrixException r6 = Matrix::CreateVector(&x1, matrix_size);
 
-	auto x = A.Solve(&b);
+	MatrixException r7 = Matrix::CreateVector(&Ax, matrix_size);
 
-	auto Ax = A_original*x;
+	ReportError(r1);
+	ReportError(r2);
+	ReportError(r3);
+	ReportError(r4);
+	ReportError(r5);
+	ReportError(r6);
+	ReportError(r7);
+	if((r1|r2|r3|r4|r5|r6|r7) != NO_ERROR) return 2;
+	
+	Matrix::GetRHSVector(A, b, matrix_size);
+	Matrix::GetRHSVector(A1, b1, matrix_size);
+
+	Matrix::GetAnswerVector(x1, matrix_size);
+
+	//A.Solve(&b, &x);
+
+	Matrix::MultiplyMatrixByVector(A1, x, Ax, matrix_size);
 
 	printf("Solution found: \n");
-	x.Print();
-	printf("Resulting ax=b vecotr: \n");
-	Ax.Print();	
+	Matrix::PrintVector(x, matrix_size);
+	printf("Resulting Ax= vector: \n");
+	Matrix::PrintVector(Ax, matrix_size);	
 	printf("Intendent b vector: \n");
-	b_original.Print();
+	Matrix::PrintVector(b1, matrix_size);
 
-	double residual = (Ax-b).Length();
-	double error = (x-A_original.GetAnswerMatrix()).Length();
+	double residual = Matrix::LengthVector(Matrix::SubstractVectors(Ax, b, matrix_size), matrix_size);
+	double error = Matrix::LengthVector(Matrix::SubstractVectors(x, x1, matrix_size), matrix_size);
 
-	printf("residual= %e\nerror= %e\n", residual, error);
-
-    t = clock()-t;
+	printf("residual=%e\nerror=%e\n", residual, error);
+	t = clock()-t;
     printf("Elapsed time: %f\n", static_cast<float>(t)/CLOCKS_PER_SEC);
+    
     return 0;
 }

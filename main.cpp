@@ -49,7 +49,7 @@ int main(int argc, char* argv[]){
 
 	Matrix::GetAnswerVector(x1, matrix_size);
 
-	//A.Solve(&b, &x);
+	Matrix::Solve(A, b, x, matrix_size);
 
 	Matrix::MultiplyMatrixByVector(A1, x, Ax, matrix_size);
 

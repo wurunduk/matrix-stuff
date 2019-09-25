@@ -16,7 +16,7 @@ namespace Matrix{
 
 	void GetRHSVector(const double* matrix, double* RHSVector, const int size);
 
-	//void Solve(const double* rhs, const double* RHSVector, const double* answer, const int size);
+	void Solve(double* matrix, double* rhs, double* answer, const int size);
 
 	MatrixException CreateVector(double** vector, const int size);
     MatrixException CreateMatrix(double** matrix, const int size);

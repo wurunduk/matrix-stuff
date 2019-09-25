@@ -97,12 +97,12 @@ double Matrix::Length(const double* matrix, const int size){
 }
 
 double Matrix::LengthVector(const double* vector, const int size){
-	double sum=0;
+	double max=vector[0];
 	for(int x = 0; x < size; x++){
-		sum += fabs(vector[x]);
+		if(vector[x] > max) max = vector[x];
 	}
 
-	return sum;
+	return max;
 }
 
 void Matrix::GetRHSVector(const double* matrix, double* RHSVector, const int size){
@@ -114,23 +114,23 @@ void Matrix::GetRHSVector(const double* matrix, double* RHSVector, const int siz
 		RHSVector[y] = sum;
 	}
 }
-/*
-void Matrix::Solve(const Matrix* rhs, Matrix* answer){
+
+void Matrix::Solve(double* matrix, double* rhs, double* answer, const int size){
 	int offset = 0;
 	//create a permutation, so we dont take time to actually move elements in the matrix
-	int* indexes = reinterpret_cast<int*>(malloc(height*sizeof(int)));
-	for(int i = 0; i < height; i++)
+	auto indexes = new int[size];
+	for(int i = 0; i < size; i++)
 		indexes[i] = i;
 
 	//when we complete a step of Gaussian algorithm, we should apply it again to the matrix of size m-1. 
 	//For that we will just think of the next element on the diagonal as the first one.
-	while(offset != width){
+	while(offset != size){
 		//we want to find the element with lowest inverse length
 		//with numbers it will be just 1/k, so we can search for the largest element in the column
 		int minimal_length_index = offset;
-		double max_length = matrix[offset + indexes[offset]*width];
-		for(int y = offset; y < height; y++){
-			double k = matrix[offset+indexes[y]*width];
+		double max_length = matrix[offset + indexes[offset]*size];
+		for(int y = offset; y < size; y++){
+			double k = matrix[offset+indexes[y]*size];
 			if(k>max_length){
 				max_length = k;
 				minimal_length_index = y;
@@ -145,16 +145,16 @@ void Matrix::Solve(const Matrix* rhs, Matrix* answer){
 		//now we want to normalize our line using the first element
 		//this will make the first element of current top line = 1
 		double k = 1.0/max_length;
-		for(int x = offset; x < width; x++){
-			matrix[x+indexes[offset]*width] *= k;
+		for(int x = offset; x < size; x++){
+			matrix[x+indexes[offset]*size] *= k;
 		}
-		rhs->matrix[indexes[offset]] *= k;
+		rhs[indexes[offset]] *= k;
 
 		//substract the top line from all the lines below it
-		for(int y = offset+1; y < height; y++){
-			rhs->matrix[indexes[y]] -= rhs->matrix[indexes[offset]]*matrix[offset+indexes[y]*width];
-			for(int x = width-1; x >= offset; x--){
-				matrix[x+indexes[y]*width] -= matrix[x+indexes[offset]*width]*matrix[offset+indexes[y]*width];
+		for(int y = offset+1; y < size; y++){
+			rhs[indexes[y]] -= rhs[indexes[offset]]*matrix[offset+indexes[y]*size];
+			for(int x = size-1; x >= offset; x--){
+				matrix[x+indexes[y]*size] -= matrix[x+indexes[offset]*size]*matrix[offset+indexes[y]*size];
 			}
 		}
 
@@ -163,18 +163,18 @@ void Matrix::Solve(const Matrix* rhs, Matrix* answer){
 	}
 
 	//at this point we have an upper diagonal matrix and we can get the answer
-	for(int y = height-1; y >= 0; y--){
+	for(int y = size-1; y >= 0; y--){
 		double sum = 0.0;
 		//technically this is an x coordinate
-		for(int i = width-1; i > y; i--){
-			sum += answer->matrix[i]*matrix[indexes[y]*width + i];
+		for(int i = size-1; i > y; i--){
+			sum += answer[i]*matrix[indexes[y]*size + i];
 		}
 
-		answer->matrix[y] = rhs->matrix[indexes[y]] - sum;
+		answer[y] = rhs[indexes[y]] - sum;
 	}
 	
-	free(indexes);
-}*/
+	delete[] indexes;
+}
 
 MatrixException Matrix::CreateVector(double** vector, const int size){
     *vector = new double[size];

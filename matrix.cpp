@@ -97,9 +97,9 @@ double Matrix::Length(const double* matrix, const int size){
 }
 
 double Matrix::LengthVector(const double* vector, const int size){
-	double max=vector[0];
+	double max=fabs(vector[0]);
 	for(int x = 0; x < size; x++){
-		if(vector[x] > max) max = vector[x];
+		if(fabs(vector[x]) > max) max = fabs(vector[x]);
 	}
 
 	return max;
@@ -127,6 +127,8 @@ void Matrix::Solve(double* matrix, double* rhs, double* answer, const int size){
 	while(offset != size){
 		//we want to find the element with lowest inverse length
 		//with numbers it will be just 1/k, so we can search for the largest element in the column
+        Print(matrix, size, indexes, 15);
+        printf("\n");
 		int minimal_length_index = offset;
 		double max_length = matrix[offset + indexes[offset]*size];
 		for(int y = offset; y < size; y++){
@@ -161,8 +163,11 @@ void Matrix::Solve(double* matrix, double* rhs, double* answer, const int size){
 		//repeat for the sub matrix
 		offset += 1;
 	}
+	
+	
 
 	//at this point we have an upper diagonal matrix and we can get the answer
+	//known as reverse step of Gauss algorithm
 	for(int y = size-1; y >= 0; y--){
 		double sum = 0.0;
 		//technically this is an x coordinate
@@ -176,9 +181,68 @@ void Matrix::Solve(double* matrix, double* rhs, double* answer, const int size){
 	delete[] indexes;
 }
 
+double* Matrix::GetBlock(const double* A, double* block, const int x, const int y, const int matrix_size, const int block_size){
+    int q, m;
+    q = x*block_size;
+    if(q + block_size > matrix_size) q = matrix_size%block_size;
+    
+    m = y*block_size;
+    if(m + block_size > matrix_size) m = matrix_size%block_size;
+    
+    block = new double[q*m];
+    
+    for(int i = 0; i < m; i++)
+        for(int j = 0; j < q; j++)
+            block[j + i*q] = A[x*block_size + j + y*block_size*matrix_size + i*matrix_size];
+            
+    return block;
+}
+
+void PutBlock(double* A, const double* block, const int x, const int y, const int matrix_size, const int block_size){
+    int q, m;
+    q = x*block_size;
+    if(q + block_size > matrix_size) q = matrix_size%block_size;
+    
+    m = y*block_size;
+    if(m + block_size > matrix_size) m = matrix_size%block_size;
+    
+    for(int i = 0; i < m; i++)
+        for(int j = 0; j < q; j++)
+            A[x*block_size + j + y*block_size*matrix_size + i*matrix_size] = block[j + i*q];
+}
+
+void Matrix::NullMatrix(double* matrix, const int size){
+    for(int x = 0; x < size; x++)
+        matrix[x] = 0;
+}
+
+MatrixException Matrix::ReadMatrix(double* matrix, const int size, const char* file_name){
+    FILE* f = fopen(file_name, "r");
+    if(!f) return CAN_NOT_OPEN;
+    
+    for(int i = 0; i < size*size; i++){
+        if(fscanf(f, "%lf", &matrix[i]) != 1){
+            fclose(f);
+            return FILE_CORRUPT;
+        }
+    }
+    
+    return NO_ERROR;
+}
+
+MatrixException Matrix::InitMatrix(double* matrix, const int size, const char* file_name){
+    if(file_name == nullptr) {
+        FillMatrix(matrix, size);
+        return NO_ERROR;
+    }
+    else return ReadMatrix(matrix, size, file_name);
+}
+
 MatrixException Matrix::CreateVector(double** vector, const int size){
     *vector = new double[size];
     if(!*vector) return MatrixException::NOT_ENOUGH_MEMORY;
+    
+    NullMatrix(*vector, size);
 
     return NO_ERROR;
 }
@@ -186,7 +250,9 @@ MatrixException Matrix::CreateVector(double** vector, const int size){
 MatrixException Matrix::CreateMatrix(double** matrix, const int size){
     *matrix = new double[size*size];
     if(!*matrix) return MatrixException::NOT_ENOUGH_MEMORY;
-
+    
+    NullMatrix(*matrix, size*size);
+    
     return NO_ERROR;
 }
 
@@ -194,31 +260,16 @@ MatrixException Matrix::CreateMatrix(double** matrix, const int size, const char
     //if no name was supplied, we want to initialize and generate the matrix
     MatrixException res = CreateMatrix(matrix, size);
 	if(res == NO_ERROR){
-		if(file_name == nullptr) {
-			FillMatrix(*matrix, size);
-			return NO_ERROR;
-		}
+		return InitMatrix(*matrix, size, file_name);
 	}
 	else return res;
-
-    FILE* f = fopen(file_name, "r");
-    if(!f) return CAN_NOT_OPEN;
-    
-    for(int i = 0; i < size*size; i++){
-        if(fscanf(f, "%lf", &(*matrix)[i]) != 1){
-            fclose(f);
-            return FILE_CORRUPT;
-        }
-    }
-
-    return NO_ERROR;
 }
 
 double* Matrix::MultiplyMatrixByVector(const double* matrix, const double* vector, double* answer, const int size){    
     for(int y = 0; y < size; y++){
-		double sum = 0;
+		double sum = 0.0;
         for(int x = 0; x < size; x++){
-            sum += matrix[y*size + x]*vector[x];
+            sum += matrix[x + y*size]*vector[x];
         }
 		answer[y] = sum;
     }
@@ -230,6 +281,16 @@ double* Matrix::SubstractVectors(double* v1, const double* v2, const int size){
 		v1[x] -= v2[x];
 
 	return v1;
+}
+
+
+double Matrix::GetError(double* vector, const int size){
+    double max=fabs(vector[0]-1);
+	for(int x = 0; x < size; x++){
+		if(fabs(vector[x] - ((x+1)&1)) > max) max = fabs(vector[x] - ((x+1)&1));
+	}
+
+	return max;
 }
 
 /*Matrix Matrix::operator-(const Matrix& m){

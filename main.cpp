@@ -3,6 +3,7 @@
 #include <ctime>
 #include <iostream>
 
+const int block_size = 3;
 
 static void ReportError(MatrixException ex){
 	switch (ex){
@@ -31,16 +32,17 @@ int main(int argc, char* argv[]){
     
     char* file_name = nullptr;
     int matrix_size = 0;
+    int block_size = 0;
 	double *A, *x, *b, *Ax;
 
-    if(!(argc==3 || argc==2) || !(matrix_size = atoi(argv[1]))){
+    if(!(argc==4 || argc==3) || !(matrix_size = atoi(argv[1])) || !(block_size = atoi(argv[2])) ){
         PrintUsage(argv[0]);        
         return 1;
     }
 
-    if(argc == 3) file_name = argv[2];
+    if(argc == 3) file_name = argv[3];
 
-    printf("loading file %s with matrix size %d\n", file_name, matrix_size);
+    printf("loading file %s with matrix size %d, block size %d\n", file_name, matrix_size, block_size);
 
 	auto t = clock();
 	
@@ -66,6 +68,7 @@ int main(int argc, char* argv[]){
 	Matrix::GetRHSVector(A, b, matrix_size);
 
 	//Matrix::Solve(A, b, x, matrix_size);
+    Matrix::SolveBlock(A, b, x, matrix_size, block_size);
     
     //at this point matrix A and vector b are wrong, but we can reinitialize them;
     Matrix::InitMatrix(A, matrix_size, file_name);
@@ -73,12 +76,12 @@ int main(int argc, char* argv[]){
     
 	Matrix::MultiplyMatrixByVector(A, x, Ax, matrix_size);
     
-	printf("Solution found: \n");
-	Matrix::PrintVector(x, matrix_size);
-	printf("Resulting Ax= vector: \n");
-	Matrix::PrintVector(Ax, matrix_size);	
-	printf("Intendent b vector: \n");
-	Matrix::PrintVector(b, matrix_size);
+	//printf("Solution found: \n");
+	//Matrix::PrintVector(x, matrix_size);
+	//printf("Resulting Ax= vector: \n");
+	//Matrix::PrintVector(Ax, matrix_size);	
+	//printf("Intendent b vector: \n");
+	//Matrix::PrintVector(b, matrix_size);
 
 	double residual = Matrix::LengthVector(Matrix::SubstractVectors(Ax, b, matrix_size), matrix_size);
 	//double error = Matrix::LengthVector(Matrix::SubstractVectors(x, x1, matrix_size), matrix_size);

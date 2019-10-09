@@ -3,7 +3,7 @@ CFLAGS=-c -Wall
 LDFLAGS=
 SOURCES=main.cpp matrix.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
-EXECUTABLE=main
+EXECUTABLE=a.out
 
 all: $(SOURCES) $(EXECUTABLE)
 	

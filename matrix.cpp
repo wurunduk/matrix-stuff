@@ -127,8 +127,8 @@ void Matrix::Solve(double* matrix, double* rhs, double* answer, const int size){
 	while(offset != size){
 		//we want to find the element with lowest inverse length
 		//with numbers it will be just 1/k, so we can search for the largest element in the column
-        Print(matrix, size, indexes, 15);
-        printf("\n");
+        //Print(matrix, size, indexes, 15);
+        //printf("\n");
 		int minimal_length_index = offset;
 		double max_length = matrix[offset + indexes[offset]*size];
 		for(int y = offset; y < size; y++){
@@ -140,6 +140,80 @@ void Matrix::Solve(double* matrix, double* rhs, double* answer, const int size){
 		}
 		
 		//now we can swap the top and the lowest line
+		int tempIndex = indexes[offset];
+		indexes[offset] = indexes[minimal_length_index];
+		indexes[minimal_length_index] = tempIndex;
+
+		//now we want to normalize our line using the first element
+		//this will make the first element of current top line = 1
+		double k = 1.0/max_length;
+		for(int x = offset; x < size; x++){
+			matrix[x+indexes[offset]*size] *= k;
+		}
+		rhs[indexes[offset]] *= k;
+
+		//substract the top line from all the lines below it
+		for(int y = offset+1; y < size; y++){
+			rhs[indexes[y]] -= rhs[indexes[offset]]*matrix[offset+indexes[y]*size];
+			for(int x = size-1; x >= offset; x--){
+				matrix[x+indexes[y]*size] -= matrix[x+indexes[offset]*size]*matrix[offset+indexes[y]*size];
+			}
+		}
+
+		//repeat for the sub matrix
+		offset += 1;
+	}
+	
+
+	//at this point we have an upper diagonal matrix and we can get the answer
+	//known as reverse step of Gauss algorithm
+	for(int y = size-1; y >= 0; y--){
+		double sum = 0.0;
+		//technically this is an x coordinate
+		for(int i = size-1; i > y; i--){
+			sum += answer[i]*matrix[indexes[y]*size + i];
+		}
+
+		answer[y] = rhs[indexes[y]] - sum;
+	}
+	
+	delete[] indexes;
+}
+
+void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int size, const int block_size){
+    int test = block_size;
+    test += 1;
+	int offset = 0;
+    int index_size = (size+2)/block_size;
+    
+    double* block = nullptr;
+    
+	//create a permutation, so we dont take time to actually move elements in the matrix
+	auto indexes = new int[index_size];
+	for(int i = 0; i < index_size; i++)
+		indexes[i] = i;
+
+	//when we complete a step of Gaussian algorithm, we should apply it again to the matrix of size m-1. 
+	//For that we will just think of the next element on the diagonal as the first one.
+	while(offset != index_size){
+		//we want to find the element with lowest inverse length
+		//with numbers it will be just 1/k, so we can search for the largest element in the column
+        //Print(matrix, size, indexes, 15);
+        //printf("\n");
+		int minimal_length_index = offset;
+        GetBlock(matrix, block, 0, 0, size, block_size);
+		double max_length = Length(block, block_size);
+		for(int y = offset; y < index_size; y++){
+            GetBlock(matrix, block, offset, indexes[y], size, block_size);
+            //this will crash on last smaller blocks
+			double k = Length(block, block_size);
+			if(k>max_length){
+				max_length = k;
+				minimal_length_index = y;
+			} 
+		}
+		
+		//now we can swap the top and the lowest line(size+2)/block_size
 		int tempIndex = indexes[offset];
 		indexes[offset] = indexes[minimal_length_index];
 		indexes[minimal_length_index] = tempIndex;
@@ -181,34 +255,43 @@ void Matrix::Solve(double* matrix, double* rhs, double* answer, const int size){
 	delete[] indexes;
 }
 
-double* Matrix::GetBlock(const double* A, double* block, const int x, const int y, const int matrix_size, const int block_size){
-    int q, m;
-    q = x*block_size;
-    if(q + block_size > matrix_size) q = matrix_size%block_size;
+void Matrix::GetBlockSize(int* q, int* m, const int x, const int y, const int matrix_size, const int block_size){
+    *q = x*block_size;
+    if(*q + block_size > matrix_size) *q = matrix_size%block_size;
     
-    m = y*block_size;
-    if(m + block_size > matrix_size) m = matrix_size%block_size;
+    *m = y*block_size;
+    if(*m + block_size > matrix_size) *m = matrix_size%block_size;
+}
+
+void Matrix::GetBlock(const double* A, double* block, const int x, const int y, const int matrix_size, const int block_size){
+    int q, m;
+    
+    GetBlockSize(&q, &m, x, y, matrix_size, block_size);
     
     block = new double[q*m];
     
-    for(int i = 0; i < m; i++)
-        for(int j = 0; j < q; j++)
+    for(int i = 0; i < m; i++){
+        for(int j = 0; j < q-4; j+=4){
             block[j + i*q] = A[x*block_size + j + y*block_size*matrix_size + i*matrix_size];
-            
-    return block;
+            block[j + i*q + 1] = A[x*block_size + j + 1 + y*block_size*matrix_size + i*matrix_size];
+            block[j + i*q + 2] = A[x*block_size + j + 2 + y*block_size*matrix_size + i*matrix_size];
+            block[j + i*q + 3] = A[x*block_size + j + 3 + y*block_size*matrix_size + i*matrix_size];
+        }
+    }
 }
 
-void PutBlock(double* A, const double* block, const int x, const int y, const int matrix_size, const int block_size){
+void Matrix::PutBlock(double* A, const double* block, const int x, const int y, const int matrix_size, const int block_size){
     int q, m;
-    q = x*block_size;
-    if(q + block_size > matrix_size) q = matrix_size%block_size;
     
-    m = y*block_size;
-    if(m + block_size > matrix_size) m = matrix_size%block_size;
+    GetBlockSize(&q, &m, x, y, matrix_size, block_size);
     
     for(int i = 0; i < m; i++)
-        for(int j = 0; j < q; j++)
+        for(int j = 0; j < q-4; j+= 4){
             A[x*block_size + j + y*block_size*matrix_size + i*matrix_size] = block[j + i*q];
+            A[x*block_size + j + 1 + y*block_size*matrix_size + i*matrix_size] = block[j + 1 + i*q];
+            A[x*block_size + j + 2 + y*block_size*matrix_size + i*matrix_size] = block[j + 2 + i*q];
+            A[x*block_size + j + 3 + y*block_size*matrix_size + i*matrix_size] = block[j + 3 + i*q];
+        }
 }
 
 void Matrix::NullMatrix(double* matrix, const int size){
@@ -292,62 +375,6 @@ double Matrix::GetError(double* vector, const int size){
 
 	return max;
 }
-
-/*Matrix Matrix::operator-(const Matrix& m){
-	Matrix result;
-	result.CreateMatrix(m.width, m.height);
-
-	if(m.height != this->height || m.width != this->width){
-		printf("Can not substract matrices of different sizes %dx%d - %dx%d.\n", this->width, this->height, m.width, m.height);
-		return result;
-	}
-
-	for(int i = 0; i < m.height*m.width; i++){
-			result.matrix[i] = this->matrix[i] - m.matrix[i];
-	}
-
-	return result;
-}
-
-Matrix Matrix::operator*(const Matrix& m){
-
-    Matrix result;
-    result.CreateMatrix(m.width, this->height);
-
-    if(m.height != this->width){
-        printf("Can not multiply matrix of width %d by matrix of height %d", this->width, m.height);
-        return result;
-    }
-    
-    for(int y = 0; y < this->height; y++){
-        for(int x = 0; x < m.width; x++){
-            double sum = 0;
-            //i - x coordinate in this matrix, y coordinate in matrix m
-            for(int i = 0; i < this->width; i++)
-                sum += this->matrix[y*this->width + i]*m.matrix[x + i*m.width];
-            result.matrix[x + y*result.width] = sum;
-        }
-    }
-    
-    return result;
-}
-
-Matrix Matrix::operator*(const double& k){
-    Matrix result;
-    result.CreateMatrix(this->width, this->height);
-    for(int i = 0; i < this->width*this->height; i++)
-        result.matrix[i] = this->matrix[i]*k;
-    return result;
-}
-
-Matrix& Matrix::operator*=(const double& k){
-    for(int i = 0; i < this->width*this->height; i++)
-        matrix[i]*=k;
-    return *this;
-}*/
-
-
-
 
 
 

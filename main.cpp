@@ -64,7 +64,7 @@ int main(int argc, char* argv[]){
         if(Ax) delete[] Ax;
         return 2;
     }
-	
+	printf("test");	
 	Matrix::GetRHSVector(A, b, matrix_size);
 
 	//Matrix::Solve(A, b, x, matrix_size);

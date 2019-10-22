@@ -25,7 +25,7 @@ static void ReportError(MatrixException ex){
 }
 
 void PrintUsage(const char* executable_name){
-    printf("Usage: %s n for auto generated matrix of size n\n %s n file to read matrix of size n from file\n", executable_name, executable_name);
+    printf("Usage: %s n m for auto generated matrix of size n with block size m\n %s n m 'file' to read matrix of size n from file with block size m\n", executable_name, executable_name);
 }
 
 int main(int argc, char* argv[]){
@@ -46,6 +46,7 @@ int main(int argc, char* argv[]){
 
 	auto t = clock();
 	
+    //initialize used variables
     MatrixException r1 = Matrix::CreateMatrix(&A, matrix_size, file_name);
     MatrixException r2 = Matrix::CreateVector(&x, matrix_size);
 	MatrixException r3 = Matrix::CreateVector(&b, matrix_size);

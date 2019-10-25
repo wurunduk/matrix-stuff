@@ -33,7 +33,11 @@ int main(int argc, char* argv[]){
     char* file_name = nullptr;
     int matrix_size = 0;
     int block_size = 0;
+	const int matrices_count = 9;
+	int exceptions = 0;
+	MatrixException e[matrices_count];
 	double *A, *x, *b, *Ax;
+	double *block_m, *block_me, *block_ee, *vec_m, *vec_e;
 
     if(!(argc==4 || argc==3) || !(matrix_size = atoi(argv[1])) || !(block_size = atoi(argv[2])) ){
         PrintUsage(argv[0]);        
@@ -47,25 +51,35 @@ int main(int argc, char* argv[]){
 	auto t = clock();
 	
     //initialize used variables
-    MatrixException r1 = Matrix::CreateMatrix(&A, matrix_size, file_name);
-    MatrixException r2 = Matrix::CreateVector(&x, matrix_size);
-	MatrixException r3 = Matrix::CreateVector(&b, matrix_size);
+    e[0] = Matrix::CreateMatrix(&A, matrix_size, matrix_size, file_name);
+    e[1] = Matrix::CreateVector(&x, matrix_size);
+	e[2] = Matrix::CreateVector(&b, matrix_size);
 
-	MatrixException r4 = Matrix::CreateVector(&Ax, matrix_size);
+	e[3] = Matrix::CreateVector(&Ax, matrix_size);
 
-	ReportError(r1);
-	ReportError(r2);
-	ReportError(r3);
-	ReportError(r4);
-	if((r1|r2|r3|r4) != NO_ERROR) 
+	e[4] = Matrix::CreateMatrix(&block_m, block_size, block_size);
+	e[5] = Matrix::CreateMatrix(&block_me, block_size, matrix_size%block_size);
+	e[6] = Matrix::CreateMatrix(&block_ee, matrix_size%block_size, matrix_size%block_size);
+	e[7] = Matrix::CreateVector(&vec_m, block_size);
+	e[8] = Matrix::CreateVector(&vec_e, matrix_size%block_size);
+
+	for(int i = 0; i < matrices_count; i++){
+		ReportError(e[i]);
+		exceptions += (int)e[i];
+	}
+	if(exceptions) 
     {
         if(A) delete[] A;
         if(x) delete[] x;
         if(b) delete[] b;
         if(Ax) delete[] Ax;
+		if(block_m) delete[] block_m;
+		if(block_me) delete[] block_me;
+		if(block_ee) delete[] block_ee;
+		if(vec_m) delete[] vec_m;
+		if(vec_e) delete[] vec_e;
         return 2;
     }
-	printf("test");	
 	Matrix::GetRHSVector(A, b, matrix_size);
 
 	//Matrix::Solve(A, b, x, matrix_size);
@@ -92,10 +106,15 @@ int main(int argc, char* argv[]){
 	t = clock()-t;
     printf("Elapsed time: %f\n", static_cast<float>(t)/CLOCKS_PER_SEC);
     
-    if(A) delete[] A;
-    if(x) delete[] x;
-    if(b) delete[] b;
-    if(Ax) delete[] Ax;
+	if(A) delete[] A;
+	if(x) delete[] x;
+	if(b) delete[] b;
+	if(Ax) delete[] Ax;
+	if(block_m) delete[] block_m;
+	if(block_me) delete[] block_me;
+	if(block_ee) delete[] block_ee;
+	if(vec_m) delete[] vec_m;
+	if(vec_e) delete[] vec_e;
     
     return 0;
 }

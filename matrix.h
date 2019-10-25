@@ -5,7 +5,7 @@
 #include <memory>
 
 namespace Matrix{
-	void FillMatrix(double* matrix, const int size);	
+	void FillMatrix(double* matrix, const int w, const int h);	
 	void GetAnswerVector(double* vector, const int size);
     void Print(const double* matrix, const int size, int print_size = 10);
 	void Print(const double* matrix, const int size, const int* indexes, int print_size = 10);
@@ -15,21 +15,20 @@ namespace Matrix{
 	double LengthVector(const double* vector, const int size);
     
     void NullMatrix(double* matrix, const int size);
-    MatrixException ReadMatrix(double* matrix, const int size, const char* file_name);
-    MatrixException InitMatrix(double* matrix, const int size, const char* file_name);
+	void EMatrix(double* matrix, const int size);
+    MatrixException ReadMatrix(double* matrix, const int w, const int h, const char* file_name);
+    MatrixException InitMatrix(double* matrix, const int w, const int h, const char* file_name);
 
 	void GetRHSVector(const double* matrix, double* RHSVector, const int size);
-
-	void Solve(double* matrix, double* rhs, double* answer, const int size);
-    void SolveBlock(double* matrix, double* rhs, double* answer, const int size, const int block_size);
     
-    void GetBlockSize(int* q, int* m, const int x, const int y, const int size, const int block_size);
-    void GetBlock(const double* A, double* block, const int x, const int y, const int matrix_size, const int block_size);
-    void PutBlock(double* A, const double* block, const int x, const int y, const int matrix_size, const int block_size);
+    void GetBlock(const double* A, double* block, const int x, const int y, const int x1, const int y1, const int matrix_size);
+    void PutBlock(double* A, const double* block, const int x, const int y, const int x1, const int y1, const int matrix_size);
 
 	MatrixException CreateVector(double** vector, const int size);
-    MatrixException CreateMatrix(double** matrix, const int size);
-    MatrixException CreateMatrix(double** matrix, const int size, const char* file_name);
+    MatrixException CreateMatrix(double** matrix, const int w, const int h);
+    MatrixException CreateMatrix(double** matrix, const int w, const int h, const char* file_name);
+
+	int GetInverseMatrix(double* matrix, double* inverse, int size);
 
 	double* MultiplyMatrixByVector(const double* matrix, const double* vector, double* answer, const int size);	
 	double* MultiplyMatrices(double* matrix, const double* matrix2, const int q, const int n, const int m);
@@ -38,6 +37,8 @@ namespace Matrix{
 	double* SubstractVectors(double* v1, const double* v2, const int size);
     
     double GetError(double* vector, const int size);
+
+	void SolveBlock(double* matrix, double* rhs, double* answer, const int size, const int block_size);
 
 	//Matrix operator-(const Matrix& m);
 

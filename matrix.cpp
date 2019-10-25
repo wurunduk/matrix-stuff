@@ -387,10 +387,11 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 	int offset = 0;
     
     double* block = nullptr;
+	double* inverse_block = nullptr;
     
 	//create a permutation, so we dont take time to actually move elements in the matrix
-	auto indexes = new int[size];
-	for(int i = 0; i < size; i++)
+	auto indexes = new int[step];
+	for(int i = 0; i < step; i++)
 		indexes[i] = i;
 
 	//when we complete a step of Gaussian algorithm, we should apply it again to the matrix of size m-1. 
@@ -414,7 +415,9 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 		double minimal_norm = 10e300;
 		double minimal_norm_index = offset;
 		for(int y = offset; y < step; y++){
-			GetBlock(matrix, block, offset*block_size, offset*block_size, size, block_size);
+			GetBlock(matrix, block, offset*block_size, y*block_size, offset*block_size + block_size, y*block_size + block_size, size);
+			EMatrix(&inverse_block, block_size);
+			if(GetInverseMatrix(block, inverse_block, block_size))
 		}
 	
 		

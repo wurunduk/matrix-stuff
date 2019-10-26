@@ -95,13 +95,13 @@ double Matrix::Length(const double* matrix, const int w, const int h){
 		sum = 0;
 		int x = 0;
 		for(; x < w-3; x+=4){
-			sum += fabs(matrix[x + y*size]);
-			sum += fabs(matrix[x + 1 + y*size]);
-			sum += fabs(matrix[x + 2 + y*size]);
-			sum += fabs(matrix[x + 3 + y*size]);
+			sum += fabs(matrix[x + y*w]);
+			sum += fabs(matrix[x + 1 + y*w]);
+			sum += fabs(matrix[x + 2 + y*w]);
+			sum += fabs(matrix[x + 3 + y*w]);
 		}
 		for(; x < w; x++)
-			sum += fabs(matrix[x + y*size]);
+			sum += fabs(matrix[x + y*w]);
 		if(y==0) max = sum;
 		if(sum > max) max = sum;
 	}
@@ -409,11 +409,11 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 	//For that we will just think of the next element on the diagonal as the first one.
 	while(offset != step){
 		double minimal_norm = 10e300;
-		double minimal_norm_index = offset;
+		int minimal_norm_index = offset;
         int found_inversable = 0;
 		for(int y = offset; y < step; y++){
 			GetBlock(matrix, block, offset*block_size, y*block_size, offset*block_size + block_size, y*block_size + block_size, size);
-			EMatrix(&inverse_block, block_size);
+			EMatrix(inverse_block, block_size);
 			if(GetInverseMatrix(block, inverse_block, block_size)){
                 found_inversable = 1;
                 double k = Length(inverse_block, block_size, block_size);
@@ -423,7 +423,7 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
                 }
             }
 		}
-		if(flag == 0){
+		if(found_inversable == 0){
             printf("no matrices can be inverted on column %d", offset);
             return;
         }

@@ -86,7 +86,7 @@ int main(int argc, char* argv[]){
     Matrix::SolveBlock(A, b, x, matrix_size, block_size);
     
     //at this point matrix A and vector b are wrong, but we can reinitialize them;
-    Matrix::InitMatrix(A, matrix_size, file_name);
+    Matrix::InitMatrix(A, matrix_size, matrix_size, file_name);
     Matrix::GetRHSVector(A, b, matrix_size);
     
 	Matrix::MultiplyMatrixByVector(A, x, Ax, matrix_size);

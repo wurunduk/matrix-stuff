@@ -487,12 +487,13 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
                 PutBlock(matrix, block_temp_sub, x*block_size, indexes[y]*block_size, x*block_size + block_size, indexes[y]*block_size + block_size, size);
             }
         }
+        
+        //forgot the ee matrix stuff
 
 		offset += 1;
 	}
 	
 	
-
 	//at this point we have an upper diagonal matrix and we can get the answer
 	//known as reverse step of Gauss algorithm
 	for(int y = size-1; y >= 0; y--){

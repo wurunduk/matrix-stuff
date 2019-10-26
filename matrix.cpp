@@ -388,11 +388,17 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
     
     double* block = nullptr;
     double* block_temp = nullptr;
+    double* block_temp_im = nullptr;
+    double* block_temp_sub = nullptr;
     double* block_me = nullptr;
     double* block_me_temp = nullptr;
+    double* block_me_temp_im = nullptr;
+    double* block_me_temp_sub = nullptr;
 	double* inverse_block = nullptr;
     double* vector_block = nullptr;
     double* vector_block_temp = nullptr;
+    double* vector_block_temp_im = nullptr;
+    double* vector_block_temp_sub = nullptr;
     
 	//create a permutation, so we dont take time to actually move elements in the matrix
 	auto indexes = new int[step];
@@ -434,7 +440,7 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
         GetInverseMatrix(block, inverse_block, matrix_size);
         
         //normalize the top row of blocks
-        //firstly normalize the end vector
+        //firstly normalize the rhs vector
         GetBlock(rhs, vector_block, 0, indexes[offset]*block_size, 1, (indexes[offset]+1)*block_size, 1);
         //multiply vector_block by inverse_matrix -> put into vector_block_temp
         PutBlock(rhs, vector_block_temp, 0, indexes[offset]*block_size, 1, (indexes[offset]+1)*block_size, 1);
@@ -442,31 +448,45 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
         //normalize the first row of the matrix
         for(int x = offset; x < step; x++){
             //multiply the end matrix
-            if(x==step-1){
-                GetBlock(matrix, block_me, step*block_size, offset*block_size, step*block_size + end, offset*block_size + block_size, size);
+            if(x==step-1 && end > 0){
+                GetBlock(matrix, block_me, step*block_size, indexes[offset]*block_size, step*block_size + end, indexes[offset]*block_size + block_size, size);
                 //multiply block_me by inverse_block and put into block_me_temp
-                PutBlock(matrix, block_me, step*block_size, offset*block_size, step*block_size + end, offset*block_size + block_size, size);
+                PutBlock(matrix, block_me_temp, step*block_size, indexes[offset]*block_size, step*block_size + end, indexes[offset]*block_size + block_size, size);
             }
             //normalize current block
-            GetBlock(matrix, block, step*block_size, offset*block_size, step*block_size + block_size, offset*block_size + block_size, size);
+            GetBlock(matrix, block, x*block_size, indexes[offset]*block_size, x*block_size + block_size, indexes[offset]*block_size + block_size, size);
             //multiply block by inverse_block and put into block_temp
-            PutBlock(matrix, block_temp, step*block_size, offset*block_size, step*block_size + block_size, offset*block_size + block_size, size);            
+            PutBlock(matrix, block_temp, x*block_size, indexes[offset]*block_size, x*block_size + block_size, indexes[offset]*block_size + block_size, size);            
         }
         
-        //substract top line of blocks from the all matrix
+        //substract top line of blocks from the all the bottom ones
         for(int y = offset+1; y < step; y++){
+            //first element of the row    
+            GetBlock(matrix, block, offset*block_size, indexes[offset]*block_size, offset*block_size + block_size, indexes[offset]*block_size + block_size, size);
+            
+            //rhs step
+            //multiply vector_block_temp by block put into vector_block_temp_im
+            GetBlock(rhs, vector_block, 0, indexes[y]*block_size, 1, (indexes[y]+1)*block_size, 1);
+            //substract from vector_block vector_block_temp_im
+            PutBlock(rhs, vector_block_temp_im, 0, indexes[y]*block_size, 1, (indexes[y]+1)*block_size, 1);
+            
+            //end step if it exists
+            if(end > 0){
+                GetBlock(matrix, block_me, step*block_size, indexes[y]*block_size, step*block_size + end, indexes[y]*block_size + block_size, size);
+                //multiply block_me by inverse_block and put into block_me_temp_im
+                //substract from block_me_temp_im block_me_temp and put into block_me_temp_sub
+                PutBlock(matrix, block_me_temp_sub, step*block_size, indexes[y]*block_size, step*block_size + end, indexes[y]*block_size + block_size, size);
+            }
+            
+            //substract all blocks
             for(int x = step-1; x >= step; x--){
-                
+                GetBlock(matrix, block_temp, x*block_size, indexes[offset]*block_size, x*block_size + block_size, indexes[offset]*block_size + block_size, size);
+                //multiply block_temp by block - put into block_temp_im
+                GetBlock(matrix, block_temp, x*block_size, indexes[y]*block_size, x*block_size + block_size, indexes[y]*block_size + block_size, size);
+                //substract from block_temp block_temp_im put into block_temp_sub
+                PutBlock(matrix, block_temp_sub, x*block_size, indexes[y]*block_size, x*block_size + block_size, indexes[y]*block_size + block_size, size);
             }
         }
-
-		//substract the top line from all the lines below it
-		for(int y = offset+1; y < step; y++){
-			rhs[indexes[y]] -= rhs[indexes[offset]]*matrix[offset+indexes[y]*size];
-			for(int x = step-1; x >= step; x--){
-				matrix[x+indexes[y]*size] -= matrix[x+indexes[offset]*size]*matrix[offset+indexes[y]*size];
-			}
-		}
 
 		offset += 1;
 	}

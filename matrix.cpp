@@ -89,18 +89,18 @@ void Matrix::PrintVector(const double* vector, const int size, const int* indexe
     printf("%lf\n", vector[indexes[size-1]]);
 }
 
-double Matrix::Length(const double* matrix, const int size){
+double Matrix::Length(const double* matrix, const int w, const int h){
 	double max, sum;
-	for(int y = 0; y < size; y++){
+	for(int y = 0; y < h; y++){
 		sum = 0;
 		int x = 0;
-		for(; x < size-3; x+=4){
+		for(; x < w-3; x+=4){
 			sum += fabs(matrix[x + y*size]);
 			sum += fabs(matrix[x + 1 + y*size]);
 			sum += fabs(matrix[x + 2 + y*size]);
 			sum += fabs(matrix[x + 3 + y*size]);
 		}
-		for(; x < size; x++)
+		for(; x < w; x++)
 			sum += fabs(matrix[x + y*size]);
 		if(y==0) max = sum;
 		if(sum > max) max = sum;
@@ -387,7 +387,12 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 	int offset = 0;
     
     double* block = nullptr;
+    double* block_temp = nullptr;
+    double* block_me = nullptr;
+    double* block_me_temp = nullptr;
 	double* inverse_block = nullptr;
+    double* vector_block = nullptr;
+    double* vector_block_temp = nullptr;
     
 	//create a permutation, so we dont take time to actually move elements in the matrix
 	auto indexes = new int[step];
@@ -397,47 +402,68 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 	//when we complete a step of Gaussian algorithm, we should apply it again to the matrix of size m-1. 
 	//For that we will just think of the next element on the diagonal as the first one.
 	while(offset != step){
-		//we want to find the element with lowest inverse length
-		int minimal_length_index = offset;
-        GetBlock(matrix, block, offset*block_size, offset*block_size, size, block_size);
-		double max_length = Length(block, block_size);
-		for(int y = offset; y < index_size; y++){
-            GetBlock(matrix, block, offset, indexes[y], size, block_size);
-            //this will crash on last smaller blocks
-			double k = Length(block, block_size);
-			if(k>max_length){
-				max_length = k;
-				minimal_length_index = y;
-			} 
-		}
-
-		
 		double minimal_norm = 10e300;
 		double minimal_norm_index = offset;
+        int found_inversable = 0;
 		for(int y = offset; y < step; y++){
 			GetBlock(matrix, block, offset*block_size, y*block_size, offset*block_size + block_size, y*block_size + block_size, size);
 			EMatrix(&inverse_block, block_size);
-			if(GetInverseMatrix(block, inverse_block, block_size))
+			if(GetInverseMatrix(block, inverse_block, block_size)){
+                found_inversable = 1;
+                double k = Length(inverse_block, block_size, block_size);
+                if(minimal_norm > k){
+                    minimal_norm = k;
+                    minimal_norm_index = y;
+                }
+            }
 		}
-	
+		if(flag == 0){
+            printf("no matrices can be inverted on column %d", offset);
+            return;
+        }
 		
-		//now we can swap the top and the lowest line(size+2)/block_size
-		int tempIndex = indexes[offset];
-		indexes[offset] = indexes[minimal_length_index];
-		indexes[minimal_length_index] = tempIndex;
-
-		//now we want to normalize our line using the first element
-		//this will make the first element of current top line = 1
-		double k = 1.0/max_length;
-		for(int x = offset; x < size; x++){
-			matrix[x+indexes[offset]*size] *= k;
-		}
-		rhs[indexes[offset]] *= k;
+		//now we can swap the top and the lowest block line
+		int temp_index = indexes[offset];
+		indexes[offset] = indexes[minimal_norm_index];
+		indexes[minimal_norm_index] = temp_index;
+        
+        
+        GetBlock(matrix, block, offset*block_size, y*block_size, offset*block_size + block_size, y*block_size + block_size, size);
+        EMatrix(&inverse_block, block_size);
+        //we know this matrix exists, no need to check it
+        GetInverseMatrix(block, inverse_block, matrix_size);
+        
+        //normalize the top row of blocks
+        //firstly normalize the end vector
+        GetBlock(rhs, vector_block, 0, indexes[offset]*block_size, 1, (indexes[offset]+1)*block_size, 1);
+        //multiply vector_block by inverse_matrix -> put into vector_block_temp
+        PutBlock(rhs, vector_block_temp, 0, indexes[offset]*block_size, 1, (indexes[offset]+1)*block_size, 1);
+        
+        //normalize the first row of the matrix
+        for(int x = offset; x < step; x++){
+            //multiply the end matrix
+            if(x==step-1){
+                GetBlock(matrix, block_me, step*block_size, offset*block_size, step*block_size + end, offset*block_size + block_size, size);
+                //multiply block_me by inverse_block and put into block_me_temp
+                PutBlock(matrix, block_me, step*block_size, offset*block_size, step*block_size + end, offset*block_size + block_size, size);
+            }
+            //normalize current block
+            GetBlock(matrix, block, step*block_size, offset*block_size, step*block_size + block_size, offset*block_size + block_size, size);
+            //multiply block by inverse_block and put into block_temp
+            PutBlock(matrix, block_temp, step*block_size, offset*block_size, step*block_size + block_size, offset*block_size + block_size, size);            
+        }
+        
+        //substract top line of blocks from the all matrix
+        for(int y = offset+1; y < step; y++){
+            for(int x = step-1; x >= step; x--){
+                
+            }
+        }
 
 		//substract the top line from all the lines below it
-		for(int y = offset+1; y < size; y++){
+		for(int y = offset+1; y < step; y++){
 			rhs[indexes[y]] -= rhs[indexes[offset]]*matrix[offset+indexes[y]*size];
-			for(int x = size-1; x >= offset; x--){
+			for(int x = step-1; x >= step; x--){
 				matrix[x+indexes[y]*size] -= matrix[x+indexes[offset]*size]*matrix[offset+indexes[y]*size];
 			}
 		}

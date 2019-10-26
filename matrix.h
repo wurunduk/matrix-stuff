@@ -11,7 +11,7 @@ namespace Matrix{
 	void Print(const double* matrix, const int size, const int* indexes, int print_size = 10);
 	void PrintVector(const double* vector, const int size, int print_size = 10);
 	void PrintVector(const double* vector, const int size, const int* indexes, int print_size = 10);
-	double Length(const double* matrix, const int size);
+	double Length(const double* matrix, const int w, const int h);
 	double LengthVector(const double* vector, const int size);
     
     void NullMatrix(double* matrix, const int size);

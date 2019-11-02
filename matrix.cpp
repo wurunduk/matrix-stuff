@@ -380,25 +380,25 @@ double Matrix::GetError(double* vector, const int size){
 	return max;
 }
 
-void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int size, const int block_size){
+void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int size, const int block_size, double* temps[13]){
     int step = size/block_size;
 	int end = size - step*block_size;
 
 	int offset = 0;
     
-    double* block = nullptr;
-    double* block_temp = nullptr;
-    double* block_temp_im = nullptr;
-    double* block_temp_sub = nullptr;
-    double* block_me = nullptr;
-    double* block_me_temp = nullptr;
-    double* block_me_temp_im = nullptr;
-    double* block_me_temp_sub = nullptr;
-	double* inverse_block = nullptr;
-    double* vector_block = nullptr;
-    double* vector_block_temp = nullptr;
-    double* vector_block_temp_im = nullptr;
-    double* vector_block_temp_sub = nullptr;
+    double* block = temps[0];
+    double* block_temp = temps[1];
+    double* block_temp_im = temps[2];
+    double* block_temp_sub = temps[3];
+    double* block_me = temps[4];
+    double* block_me_temp = temps[5];
+    double* block_me_temp_im = temps[6];
+    double* block_me_temp_sub = temps[7];
+	double* inverse_block = temps[8];
+    double* vector_block = temps[9];
+    double* vector_block_temp = temps[10];
+    double* vector_block_temp_im = temps[11];
+    double* vector_block_temp_sub = temps[12];
     
 	//create a permutation, so we dont take time to actually move elements in the matrix
 	auto indexes = new int[step];

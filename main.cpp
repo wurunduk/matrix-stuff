@@ -38,6 +38,7 @@ int main(int argc, char* argv[]){
 	MatrixException e[matrices_count];
 	double *A, *x, *b, *Ax;
 	double *block_m, *block_me, *block_ee, *vec_m, *vec_e;
+    double* temps[12];
 
     if(!(argc==4 || argc==3) || !(matrix_size = atoi(argv[1])) || !(block_size = atoi(argv[2])) ){
         PrintUsage(argv[0]);        
@@ -83,7 +84,7 @@ int main(int argc, char* argv[]){
 	Matrix::GetRHSVector(A, b, matrix_size);
 
 	//Matrix::Solve(A, b, x, matrix_size);
-    Matrix::SolveBlock(A, b, x, matrix_size, block_size);
+    Matrix::SolveBlock(A, b, x, matrix_size, block_size, temps);
     
     //at this point matrix A and vector b are wrong, but we can reinitialize them;
     Matrix::InitMatrix(A, matrix_size, matrix_size, file_name);

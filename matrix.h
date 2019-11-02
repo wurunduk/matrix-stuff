@@ -38,7 +38,7 @@ namespace Matrix{
     
     double GetError(double* vector, const int size);
 
-	void SolveBlock(double* matrix, double* rhs, double* answer, const int size, const int block_size);
+	void SolveBlock(double* matrix, double* rhs, double* answer, const int size, const int block_size, double* array[]);
 
 	//Matrix operator-(const Matrix& m);
 

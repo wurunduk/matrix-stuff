@@ -434,10 +434,10 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 		indexes[minimal_norm_index] = temp_index;
         
         
-        GetBlock(matrix, block, offset*block_size, y*block_size, offset*block_size + block_size, y*block_size + block_size, size);
-        EMatrix(&inverse_block, block_size);
+        GetBlock(matrix, block, offset*block_size, indexes[offset]*block_size, offset*block_size + block_size, indexes[offset]*block_size + block_size, size);
+        EMatrix(inverse_block, block_size);
         //we know this matrix exists, no need to check it
-        GetInverseMatrix(block, inverse_block, matrix_size);
+        GetInverseMatrix(block, inverse_block, block_size);
         
         //normalize the top row of blocks
         //firstly normalize the rhs vector
@@ -493,18 +493,28 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 		offset += 1;
 	}
 	
+	//backwards step
+	for (int y = step-1; y > 0; y--)
+    {
+      GetBlock(rhs, vector_block, 0, indexes[y] * block_size, 1, indexes[y] * block_size + block_size, 1);
+      for (int x = 0; x < y; x++)
+        {
+          GetBlock (matrix, block_temp, x * block_size, indexes[y] * block_size, x * block_size + block_size, indexes[y] * block_size + block_size, size);
+          //multiplication block_temp by vector_block put into vector_block_temp
+          GetBlock (rhs, vector_block_temp, 0, x * block_size, 1, x * block_size + block_size, 1);
+          //substrac vector_block and vector_block_temp put into vector_block_temp_sub
+          PutBlock (rhs, vector_block_temp_sub, 0,  x * block_size, 1, x * block_size + block_size, 1);
+        }
+    }
 	
-	//at this point we have an upper diagonal matrix and we can get the answer
-	//known as reverse step of Gauss algorithm
-	for(int y = size-1; y >= 0; y--){
-		double sum = 0.0;
-		//technically this is an x coordinate
-		for(int i = size-1; i > y; i--){
-			sum += answer[i]*matrix[indexes[y]*size + i];
-		}
-
-		answer[y] = rhs[indexes[y]] - sum;
-	}
+	//swap the answer vector back
+	for(int y = 0; y < size; y++){
+        if(y < step*block_size)
+            answer[y] = rhs[indexes[y/block_size] + y%block_size];
+        else
+            answer[y] = rhs[y];
+    }
+	
 	
 	delete[] indexes;
 }

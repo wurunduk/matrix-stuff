@@ -33,8 +33,8 @@ int main(int argc, char* argv[]){
     int block_size = 0;
     int e = 0;
     double *A, *x, *b, *Ax;
-    double *block_m, *block_me, *block_ee, *vec_m, *vec_e;
-    double* temps[12];
+    const int temp_matrix_count = 13;
+    double* temps[temp_matrix_count];
 
     if(!(argc==4 || argc==3) || !(matrix_size = atoi(argv[1])) || !(block_size = atoi(argv[2])) ){
         PrintUsage(argv[0]);        
@@ -45,6 +45,8 @@ int main(int argc, char* argv[]){
 
     printf("loading file %s with matrix size %d, block size %d\n", file_name, matrix_size, block_size);
 
+    int end = matrix_size - (matrix_size/block_size)*block_size;
+    
 	auto t = clock();
 	
     //initialize used variables
@@ -54,12 +56,20 @@ int main(int argc, char* argv[]){
 
     e |= Matrix::CreateVector(&Ax, matrix_size);
 
-    e |= Matrix::CreateMatrix(&block_m, block_size, block_size);
-    e |= Matrix::CreateMatrix(&block_me, block_size, matrix_size%block_size);
-    e |= Matrix::CreateMatrix(&block_ee, matrix_size%block_size, matrix_size%block_size);
-    e |= Matrix::CreateVector(&vec_m, block_size);
-    e |= Matrix::CreateVector(&vec_e, matrix_size%block_size);
-
+    e |= Matrix::CreateMatrix(&temps[0], block_size, block_size);//temp mm blocks
+    e |= Matrix::CreateMatrix(&temps[1], block_size, block_size);
+    e |= Matrix::CreateMatrix(&temps[2], block_size, block_size);
+    e |= Matrix::CreateMatrix(&temps[3], block_size, block_size);
+    e |= Matrix::CreateMatrix(&temps[4], block_size, end);//temp me blocks
+    e |= Matrix::CreateMatrix(&temps[5], block_size, end);
+    e |= Matrix::CreateMatrix(&temps[6], block_size, end);
+    e |= Matrix::CreateMatrix(&temps[7], block_size, end);
+    e |= Matrix::CreateMatrix(&temps[8], block_size, block_size);//inversed block
+    e |= Matrix::CreateVector(&temps[9], block_size);//temp b vector blocks
+    e |= Matrix::CreateVector(&temps[10], block_size);
+    e |= Matrix::CreateVector(&temps[11], block_size);
+    e |= Matrix::CreateVector(&temps[12], block_size);
+    
     ReportError((MatrixException)e);
     if(e != NO_ERROR)
     {
@@ -67,11 +77,9 @@ int main(int argc, char* argv[]){
         if(x) delete[] x;
         if(b) delete[] b;
         if(Ax) delete[] Ax;
-		if(block_m) delete[] block_m;
-		if(block_me) delete[] block_me;
-		if(block_ee) delete[] block_ee;
-		if(vec_m) delete[] vec_m;
-		if(vec_e) delete[] vec_e;
+        
+        for(int i = 0; i < temp_matrix_count; i++)
+            if(temps[i]) delete[] temps[i];
         return 2;
     }
 	Matrix::GetRHSVector(A, b, matrix_size);
@@ -104,11 +112,9 @@ int main(int argc, char* argv[]){
 	if(x) delete[] x;
 	if(b) delete[] b;
 	if(Ax) delete[] Ax;
-	if(block_m) delete[] block_m;
-	if(block_me) delete[] block_me;
-	if(block_ee) delete[] block_ee;
-	if(vec_m) delete[] vec_m;
-	if(vec_e) delete[] vec_e;
+    
+    for(int i = 0; i < temp_matrix_count; i++)
+            if(temps[i]) delete[] temps[i];
     
     return 0;
 }

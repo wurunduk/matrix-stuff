@@ -3,8 +3,6 @@
 #include <ctime>
 #include <iostream>
 
-const int block_size = 3;
-
 static void ReportError(MatrixException ex){
 	switch (ex){
 		case NO_ERROR:
@@ -33,11 +31,9 @@ int main(int argc, char* argv[]){
     char* file_name = nullptr;
     int matrix_size = 0;
     int block_size = 0;
-	const int matrices_count = 9;
-	int exceptions = 0;
-	MatrixException e[matrices_count];
-	double *A, *x, *b, *Ax;
-	double *block_m, *block_me, *block_ee, *vec_m, *vec_e;
+    int e = 0;
+    double *A, *x, *b, *Ax;
+    double *block_m, *block_me, *block_ee, *vec_m, *vec_e;
     double* temps[12];
 
     if(!(argc==4 || argc==3) || !(matrix_size = atoi(argv[1])) || !(block_size = atoi(argv[2])) ){
@@ -52,23 +48,20 @@ int main(int argc, char* argv[]){
 	auto t = clock();
 	
     //initialize used variables
-    e[0] = Matrix::CreateMatrix(&A, matrix_size, matrix_size, file_name);
-    e[1] = Matrix::CreateVector(&x, matrix_size);
-	e[2] = Matrix::CreateVector(&b, matrix_size);
+    e |= Matrix::CreateMatrix(&A, matrix_size, matrix_size, file_name);
+    e |= Matrix::CreateVector(&x, matrix_size);
+    e |= Matrix::CreateVector(&b, matrix_size);
 
-	e[3] = Matrix::CreateVector(&Ax, matrix_size);
+    e |= Matrix::CreateVector(&Ax, matrix_size);
 
-	e[4] = Matrix::CreateMatrix(&block_m, block_size, block_size);
-	e[5] = Matrix::CreateMatrix(&block_me, block_size, matrix_size%block_size);
-	e[6] = Matrix::CreateMatrix(&block_ee, matrix_size%block_size, matrix_size%block_size);
-	e[7] = Matrix::CreateVector(&vec_m, block_size);
-	e[8] = Matrix::CreateVector(&vec_e, matrix_size%block_size);
+    e |= Matrix::CreateMatrix(&block_m, block_size, block_size);
+    e |= Matrix::CreateMatrix(&block_me, block_size, matrix_size%block_size);
+    e |= Matrix::CreateMatrix(&block_ee, matrix_size%block_size, matrix_size%block_size);
+    e |= Matrix::CreateVector(&vec_m, block_size);
+    e |= Matrix::CreateVector(&vec_e, matrix_size%block_size);
 
-	for(int i = 0; i < matrices_count; i++){
-		ReportError(e[i]);
-		exceptions += (int)e[i];
-	}
-	if(exceptions) 
+    ReportError((MatrixException)e);
+    if(e != NO_ERROR)
     {
         if(A) delete[] A;
         if(x) delete[] x;
@@ -103,7 +96,7 @@ int main(int argc, char* argv[]){
 	//double error = Matrix::LengthVector(Matrix::SubstractVectors(x, x1, matrix_size), matrix_size);
     double error = Matrix::GetError(x, matrix_size);
 
-	printf("residual=%e\nerror=%e\n", residual, error);
+	printf("Residual=%e\nerror=%e\n", residual, error);
 	t = clock()-t;
     printf("Elapsed time: %f\n", static_cast<float>(t)/CLOCKS_PER_SEC);
     

@@ -1,7 +1,7 @@
 CC=g++
 CFLAGS=-c -Wall
 LDFLAGS=
-SOURCES=main.cpp matrix.cpp
+SOURCES=main.cpp matrix.cpp fpu_init.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=a.out
 

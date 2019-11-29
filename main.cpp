@@ -3,6 +3,8 @@
 #include <ctime>
 #include <iostream>
 
+void set_fpu_exception_mask (void);
+
 static void ReportError(MatrixException ex){
 	switch (ex){
 		case NO_ERROR:
@@ -27,7 +29,7 @@ void PrintUsage(const char* executable_name){
 }
 
 int main(int argc, char* argv[]){
-    
+    set_fpu_exception_mask();
     char* file_name = nullptr;
     int matrix_size = 0;
     int block_size = 0;

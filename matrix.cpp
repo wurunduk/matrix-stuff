@@ -475,7 +475,7 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
                 GetBlock(matrix, block_me, step*block_size, indexes[offset]*block_size, 
 										   step*block_size + end, indexes[offset]*block_size + block_size, size);
                 //multiply block_me by inverse_block and put into block_me_temp
-				MultiplyMatrices(inverse_block, block_me, block_me_temp, block_size, block_size, block_size);
+				MultiplyMatrices(inverse_block, block_me, block_me_temp, block_size, block_size, end);
                 PutBlock(matrix, block_me_temp, step*block_size, indexes[offset]*block_size, 
 												step*block_size + end, indexes[offset]*block_size + block_size, size);
             }

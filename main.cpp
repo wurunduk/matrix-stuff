@@ -35,7 +35,7 @@ int main(int argc, char* argv[]){
     int block_size = 0;
     int e = 0;
     double *A, *x, *b, *Ax;
-    const int temp_matrix_count = 13;
+    const int temp_matrix_count = 17;
     double* temps[temp_matrix_count];
 
     if(!(argc==4 || argc==3) || !(matrix_size = atoi(argv[1])) || !(block_size = atoi(argv[2])) ){
@@ -71,6 +71,10 @@ int main(int argc, char* argv[]){
     e |= Matrix::CreateVector(&temps[10], block_size);
     e |= Matrix::CreateVector(&temps[11], block_size);
     e |= Matrix::CreateVector(&temps[12], block_size);
+	e |= Matrix::CreateMatrix(&temps[13], end, end);//temp ee blocks
+	e |= Matrix::CreateMatrix(&temps[14], end, end);
+	e |= Matrix::CreateVector(&temps[15], end);//temp vector end blocks
+	e |= Matrix::CreateVector(&temps[16], end);
     
     ReportError((MatrixException)e);
     if(e != NO_ERROR)
@@ -86,14 +90,13 @@ int main(int argc, char* argv[]){
     }
 	Matrix::GetRHSVector(A, b, matrix_size);
 
-	//Matrix::Solve(A, b, x, matrix_size);
     Matrix::SolveBlock(A, b, x, matrix_size, block_size, temps);
     
     //at this point matrix A and vector b are wrong, but we can reinitialize them;
     Matrix::InitMatrix(A, matrix_size, matrix_size, file_name);
     Matrix::GetRHSVector(A, b, matrix_size);
     
-	Matrix::MultiplyMatrixByVector(A, x, Ax, matrix_size);
+	Matrix::MultiplyMatrices(A, x, Ax, matrix_size, matrix_size, 1);
     
 	//printf("Solution found: \n");
 	//Matrix::PrintVector(x, matrix_size);
@@ -102,7 +105,7 @@ int main(int argc, char* argv[]){
 	//printf("Intendent b vector: \n");
 	//Matrix::PrintVector(b, matrix_size);
 
-	double residual = Matrix::LengthVector(Matrix::SubstractVectors(Ax, b, matrix_size), matrix_size);
+	double residual = Matrix::LengthVector(Matrix::SubstractMatrices(Ax, b, matrix_size, 1), matrix_size);
 	//double error = Matrix::LengthVector(Matrix::SubstractVectors(x, x1, matrix_size), matrix_size);
     double error = Matrix::GetError(x, matrix_size);
 

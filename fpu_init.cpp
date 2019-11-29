@@ -1,5 +1,3 @@
-#include "misc_io.h"
-
 /* Установить все маски особых случаев */
 #if defined (__i386__) || defined (__x86_64__)
 void set_fpu_exception_mask (void)

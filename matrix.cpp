@@ -6,7 +6,7 @@
 void Matrix::FillMatrix(double* m, const int w, const int h){
 	for(int y = 0; y < h; y++)
 		for(int x = 0; x < w; x++)
-			m[y*w + x] = fabs(y-x) + 1;
+			m[y*w + x] = 1.0/(y+x+1);
 }
 
 void Matrix::GetAnswerVector(double* vector, const int size){
@@ -250,106 +250,138 @@ MatrixException Matrix::CreateMatrix(double** matrix, const int w, const int h, 
 	else return res;
 }
 
-int Matrix::GetInverseMatrix(double* matrix, double* inverse, int size){
-	double temp_matrix[4];
-	double t = 0;
+int Matrix::GetInverseMatrix(double* matrix, double* matrixReversed, int m, double norm, int* transposition_m){
+	double temp = 0;
+  	double temp_m[4];
 	const double EPS = 1e-16;
-	for(int x = 0; x < size; x++){
-		int y = x;
-		for(; y < size; y++){
-			if(fabs(matrix[y*size + x]) > EPS){
-				int n = 0;
-				for(; n < size-3; n += 4){
-					//swap elements
-					temp_matrix[0] = matrix[x*size + n];
-					matrix[x*size+n] = matrix[y*size+n];
-					matrix[y*size+n] = temp_matrix[0];
 
-					temp_matrix[1] = matrix[x*size + n+1];
-					matrix[x*size+n+1] = matrix[y*size+n+1];
-					matrix[y*size+n+1] = temp_matrix[1];
+  	for (int i = 0; i < m; i++)
+    	transposition_m[i] = i;
 
-					temp_matrix[2] = matrix[x*size + n+2];
-					matrix[x*size+n+2] = matrix[y*size+n+2];
-					matrix[y*size+n+2] = temp_matrix[2];
+  	for (int k = 0; k < m; k++){
+      	double max_norm = -10e300;
+      	int i_temp = k, j_temp = k;
+      	for (int i = k; i < m; i++){
+          	for (int j = k; j < m; j++){
+              	temp = matrix[i*m + j];
+              	if (max_norm < fabs (temp)){
+                  	max_norm = fabs (temp);
+                  	i_temp = i;
+                  	j_temp = j;
+                }
+            }
+        }
+      	if (fabs (max_norm) < EPS * norm)
+         	return 0;
 
-					temp_matrix[3] = matrix[x*size + n+3];
-					matrix[x*size+n+3] = matrix[y*size+n+3];
-					matrix[y*size+n+3] = temp_matrix[3];
-					
-					temp_matrix[0] = inverse[x*size + n];
-					inverse[x*size+n] = inverse[y*size+n];
-					inverse[y*size+n] = temp_matrix[0];
+      	if (i_temp != k){
+          	int j = 0;
+          	for (; j < m - 3; j += 4){
+		        temp_m[0] = matrix[k*m+j];
+		        matrix[k*m+j] = matrix[i_temp*m+j];
+		        matrix[i_temp*m+j] = temp_m[0];
 
-					temp_matrix[1] = inverse[x*size + n+1];
-					inverse[x*size+n+1] = inverse[y*size+n+1];
-					inverse[y*size+n+1] = temp_matrix[1];
+				temp_m[1] = matrix[k*m+j + 1];
+		        matrix[k*m+j+1] = matrix[i_temp*m+j+1];
+		        matrix[i_temp*m+j+1] = temp_m[1];
 
-					temp_matrix[2] = inverse[x*size + n+2];
-					inverse[x*size+n+2] = inverse[y*size+n+2];
-					inverse[y*size+n+2] = temp_matrix[2];
+				temp_m[2] = matrix[k*m+j + 2];
+		        matrix[k*m+j+2] = matrix[i_temp*m+j+2];
+		        matrix[i_temp*m+j+2] = temp_m[2];
 
-					temp_matrix[3] = inverse[x*size + n+3];
-					inverse[x*size+n+3] = inverse[y*size+n+3];
-					inverse[y*size+n+3] = temp_matrix[3];
-				}
-				for(;n<size;n++){
-					temp_matrix[0] = matrix[x*size + n];
-					matrix[x*size+n] = matrix[y*size+n];
-					matrix[y*size+n] = temp_matrix[0];
+				temp_m[3] = matrix[k*m+j + 3];
+		        matrix[k*m+j+3] = matrix[i_temp*m+j+3];
+		        matrix[i_temp*m+j+3] = temp_m[3];
 
-					temp_matrix[0] = inverse[x*size + n];
-					inverse[x*size+n] = inverse[y*size+n];
-					inverse[y*size+n] = temp_matrix[0];
-				}
-				break;
-			}
-		}
-		if(y==size) return 0;
+				temp_m[0] = matrixReversed[k*m+j];
+		        matrixReversed[k*m+j] = matrixReversed[i_temp*m+j];
+		        matrixReversed[i_temp*m+j] = temp_m[0];
 
-		t = matrix[x*size+x];
-		int n = 0;
-		for(; n < size-3; n += 4){
-			matrix[x*size + n] /= t;
-			matrix[x*size + n+1] /= t;
-			matrix[x*size + n+2] /= t;
-			matrix[x*size + n+3] /= t;
+		        temp_m[1] = matrixReversed[k*m+j + 1];
+		        matrixReversed[k*m+j+1] = matrixReversed[i_temp*m+j+1];
+		        matrixReversed[i_temp*m+j+1] = temp_m[1];
 
-			inverse[x*size + n] /= t;
-			inverse[x*size + n+1] /= t;
-			inverse[x*size + n+2] /= t;
-			inverse[x*size + n+3] /= t;
-		}
-		for(; n < size; n++){
-			matrix[x*size + n] /= t;
-			inverse[x*size + n] /= t;
-		}
+				temp_m[2] = matrixReversed[k*m+j + 2];
+		        matrixReversed[k*m+j+2] = matrixReversed[i_temp*m+j+2];
+		        matrixReversed[i_temp*m+j+2] = temp_m[2];
 
-		for(n = 0; n < size; n++){
-			t = matrix[n*size + x];
-			int k = 0;
-			for(; k < size-3; k+=4){
-				if(n != x){
-					inverse[n*size + k] -= inverse[x*size + k] * t;
-					inverse[n*size + k+1] -= inverse[x*size + k+1] * t;
-					inverse[n*size + k+2] -= inverse[x*size + k+2] * t;
-					inverse[n*size + k+3] -= inverse[x*size + k+3] * t;
+				temp_m[3] = matrixReversed[k*m+j + 3];
+		        matrixReversed[k*m+j+3] = matrixReversed[i_temp*m+j+3];
+		        matrixReversed[i_temp*m+j+3] = temp_m[3];;
+            }
+          	for (; j < m; j++){
+		        temp = matrix[k*m+j];
+		        matrix[k*m+j] = matrix[i_temp*m+j];
+		        matrix[i_temp*m+j] = temp;
+		        temp = matrixReversed[k*m+j];
+		        matrixReversed[k*m+j] = matrixReversed[i_temp*m+j];
+		        matrixReversed[i_temp*m+j] = temp;
+            }
 
-					matrix[n*size + k] -= matrix[x*size + k] * t;
-					matrix[n*size + k+1] -= matrix[x*size + k+1] * t;
-					matrix[n*size + k+2] -= matrix[x*size + k+2] * t;
-					matrix[n*size + k+3] -= matrix[x*size + k+3] * t;
-				}
-			}
-			for(; k < size; k++){
-				if(n != x){
-					inverse[n*size + k] -= inverse[x*size + k] * t;
-					matrix[n*size + k] -= matrix[x*size + k] * t;
-				}
-			}
-		}
-	}
-	return 1;
+        }
+
+		if (j_temp != k){
+          	for (int i = 0; i < m; i++){
+		          temp = matrix[i*m+k];
+		          matrix[i*m+k] = matrix[i*m+j_temp];
+		          matrix[i*m+j_temp] = temp;
+            }
+          	transposition_m[k] = j_temp;
+        }
+
+		temp = matrix[k*m+k];
+		int l = 0;
+		for (; l < m - 3; l += 4){
+			matrix[k*m+l] /= temp;
+			matrix[k*m+l+1] /= temp;
+			matrix[k*m+l+2] /= temp;
+			matrix[k*m+l+3] /= temp;
+
+			matrixReversed[k*m+l] /= temp;
+			matrixReversed[k*m+l+1] /= temp;
+			matrixReversed[k*m+l+2] /= temp;
+			matrixReversed[k*m+l+3] /= temp;
+        }
+      	for (; l < m; l++){
+          	matrix[k*m+l] /= temp;
+          	matrixReversed[k*m+l] /= temp;
+        }
+      	for (l = 0; l < m; l++){
+			temp = matrix[l*m + k];
+		    int p = 0;
+		    for (; p < m - 3; p += 4){
+            	if (l != k){
+					matrixReversed[l*m + p] -= matrixReversed[k*m + p]*temp;
+					matrixReversed[l*m + p+1] -= matrixReversed[k*m + p+1]*temp;
+					matrixReversed[l*m + p+2] -= matrixReversed[k*m + p+2]*temp;
+					matrixReversed[l*m + p+3] -= matrixReversed[k*m + p+3]*temp;
+
+					matrix[l*m + p] -= matrix[k*m + p]*temp;
+					matrix[l*m + p+1] -= matrix[k*m + p+1]*temp;
+					matrix[l*m + p+2] -= matrix[k*m + p+2]*temp;
+					matrix[l*m + p+3] -= matrix[k*m + p+3]*temp;
+                }
+            }
+          	for (; p < m; p++){
+            	if (l != k){
+		       		matrixReversed[l*m + p] -= matrixReversed[k*m + p]*temp;
+		            matrix[l*m + p] -= matrix[k*m + p]*temp;
+                }
+            }
+        }
+    }
+
+  	for (int i = m - 1; i >= 0; i--){
+      	if (i != transposition_m[i]){
+          	for (int j = 0; j < m; j++){
+              	temp = matrixReversed[i * m + j];
+             	matrixReversed[i * m + j] = matrixReversed[transposition_m[i] * m + j];
+             	matrixReversed[transposition_m[i] * m +j] = temp;
+            }
+        }
+    }
+
+  return 1;
 }
 
 double* Matrix::MultiplyMatrices(const double* matrix1, const double* matrix2, double* res, const int h, const int wh, const int w){
@@ -429,8 +461,11 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
     
 	//create a permutation, so we dont take time to actually move elements in the matrix
 	auto indexes = new int[step];
+	auto indexes_m = new int[size];
 	for(int i = 0; i < step; i++)
 		indexes[i] = i;
+
+	double n = Length(matrix, size, size);
 
 	//when we complete a step of Gaussian algorithm, we should apply it again to the matrix of size m-1. 
 	//For that we will just think of the next element on the diagonal as the first one.
@@ -442,7 +477,7 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 			GetBlock(matrix, block, offset*block_size, indexes[y]*block_size, 
 									offset*block_size + block_size, indexes[y]*block_size + block_size, size);
 			EMatrix(inverse_block, block_size);
-			if(GetInverseMatrix(block, inverse_block, block_size)){
+			if(GetInverseMatrix(block, inverse_block, block_size, n, indexes_m)){
                 found_inversable = 1;
                 double k = Length(inverse_block, block_size, block_size);
                 if(minimal_norm > k){
@@ -466,7 +501,7 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 								offset*block_size + block_size, indexes[offset]*block_size + block_size, size);
         EMatrix(inverse_block, block_size);
         //we know this matrix exists, no need to check it
-        GetInverseMatrix(block, inverse_block, block_size);
+        GetInverseMatrix(block, inverse_block, block_size, n, indexes_m);
         
 
         //normalize the top row of blocks
@@ -614,6 +649,7 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 	
 	
 	delete[] indexes;
+	delete[] indexes_m;
 }
 
 

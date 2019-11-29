@@ -98,12 +98,12 @@ int main(int argc, char* argv[]){
     
 	Matrix::MultiplyMatrices(A, x, Ax, matrix_size, matrix_size, 1);
     
-	//printf("Solution found: \n");
-	//Matrix::PrintVector(x, matrix_size);
-	//printf("Resulting Ax= vector: \n");
-	//Matrix::PrintVector(Ax, matrix_size);	
-	//printf("Intendent b vector: \n");
-	//Matrix::PrintVector(b, matrix_size);
+	printf("Solution found: \n");
+	Matrix::PrintVector(x, matrix_size);
+	printf("Resulting Ax= vector: \n");
+	Matrix::PrintVector(Ax, matrix_size);	
+	printf("Intendent b vector: \n");
+	Matrix::PrintVector(b, matrix_size);
 
 	double residual = Matrix::LengthVector(Matrix::SubstractMatrices(Ax, b, matrix_size, 1), matrix_size);
 	//double error = Matrix::LengthVector(Matrix::SubstractVectors(x, x1, matrix_size), matrix_size);

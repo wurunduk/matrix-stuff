@@ -28,7 +28,7 @@ namespace Matrix{
     MatrixException CreateMatrix(double** matrix, const int w, const int h);
     MatrixException CreateMatrix(double** matrix, const int w, const int h, const char* file_name);
 
-	int GetInverseMatrix(double* matrix, double* inverse, int size);
+	int GetInverseMatrix(double* matrix, double* matrixReversed, int m, double norm, int* transposition_m);
 
 	double* MultiplyMatrices(const double* matrix1, const double* matrix2, double* res, const int h, const int wh, const int w);
     double* SubstractMatrices(double* matrix, const double* matrix2, const int w, const int h);

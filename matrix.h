@@ -30,11 +30,8 @@ namespace Matrix{
 
 	int GetInverseMatrix(double* matrix, double* inverse, int size);
 
-	double* MultiplyMatrixByVector(const double* matrix, const double* vector, double* answer, const int size);	
-	double* MultiplyMatrices(double* matrix, const double* matrix2, const int q, const int n, const int m);
-    double* SubstractMatrices(double* matrix, const double* matrix2, const int n, const int m);
-    
-	double* SubstractVectors(double* v1, const double* v2, const int size);
+	double* MultiplyMatrices(const double* matrix1, const double* matrix2, double* res, const int h, const int wh, const int w);
+    double* SubstractMatrices(double* matrix, const double* matrix2, const int w, const int h);
     
     double GetError(double* vector, const int size);
 

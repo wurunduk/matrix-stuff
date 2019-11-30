@@ -7,7 +7,7 @@
 void Matrix::FillMatrix(double* m, const int w, const int h){
 	for(int y = 0; y < h; y++)
 		for(int x = 0; x < w; x++)
-			m[y*w + x] = fabs(x-y);
+			m[y*w + x] = 1.0/(x+y+1);
 }
 
 void Matrix::GetAnswerVector(double* vector, const int size){
@@ -186,17 +186,17 @@ void Matrix::NullMatrix(double* matrix, const int size){
 }
 
 void Matrix::EMatrix(double* matrix, const int size){
-	NullMatrix(matrix, size);
+	NullMatrix(matrix, size*size);
 	int x = 0;
 	for(; x < size-7; x+= 8){
 		matrix[x*size + x] = 1;
-		matrix[x*size + x+1] = 1;
-		matrix[x*size + x+2] = 1;
-		matrix[x*size + x+3] = 1;
-		matrix[x*size + x+4] = 1;
-		matrix[x*size + x+5] = 1;
-		matrix[x*size + x+6] = 1;
-		matrix[x*size + x+7] = 1;
+		matrix[(x+1)*size + x+1] = 1;
+		matrix[(x+2)*size + x+2] = 1;
+		matrix[(x+3)*size + x+3] = 1;
+		matrix[(x+4)*size + x+4] = 1;
+		matrix[(x+5)*size + x+5] = 1;
+		matrix[(x+6)*size + x+6] = 1;
+		matrix[(x+7)*size + x+7] = 1;
 	}
 	for(; x < size; x++)
 		matrix[x*size + x] = 1;
@@ -625,6 +625,8 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 									offset*block_size + block_size, indexes[y]*block_size + block_size, size);
 			EMatrix(inverse_block, block_size);
 			if(GetInverseMatrix(block, inverse_block, block_size, n, indexes_m)){
+                Print(inverse_block, block_size);
+                printf("step %d block %d\n\n", offset, y);
                 found_inversable = 1;
                 double k = Length(inverse_block, block_size, block_size);
                 if(minimal_norm > k){
@@ -634,9 +636,11 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
             }
 		}
 		if(found_inversable == 0){
-            printf("No matrices can be inverted on column %d", offset);
+            printf("No matrices can be inverted on column %d\n", offset);
             return;
         }
+        
+        printf("step %d\n", offset);
 		
 		//now we can swap the top and the lowest block line
 		int temp_index = indexes[offset];
@@ -670,6 +674,8 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 											step*block_size + end, indexes[offset]*block_size + block_size, size);
 		}
 
+		//Print(matrix, size);
+		
         //normalize the first row of the matrix
         for(int x = offset; x < step; x++){
             //normalize current block
@@ -678,8 +684,16 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
             //multiply block by inverse_block and put into block_temp
 			MultiplyMatrices(inverse_block, block, block_temp, block_size, block_size, block_size);
             PutBlock(matrix, block_temp, x*block_size, indexes[offset]*block_size, 
-										 x*block_size + block_size, indexes[offset]*block_size + block_size, size);            
+										 x*block_size + block_size, indexes[offset]*block_size + block_size, size);
+
+            if(offset == 0){
+                Print(block, block_size);
+                Print(inverse_block, block_size);
+                Print(block_temp, block_size);
+            }
         }
+        
+        
         
 		//everything normalized, block_me_temp has ready me normalized block od the top row
 		//vector_block_temp has the same for rhs vector
@@ -736,12 +750,12 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 
             
             //rhs vector end block
-            GetBlock(rhs, vector_e, 0, step, 
-									1, step + end, 1);
+            GetBlock(rhs, vector_e, 0, step*block_size, 
+									1, step*block_size + end, 1);
 			MultiplyMatrices(block_me, vector_block_temp, vector_e_temp, end, block_size, 1);
 			SubstractMatrices(vector_e, vector_e_temp, 1, end);
-            PutBlock(rhs, vector_e, 0, step, 
-									1, step + end, 1);
+            PutBlock(rhs, vector_e, 0, step*block_size, 
+									1, step*block_size + end, 1);
 
             //ee block
             GetBlock(matrix, block_ee, step*block_size, step*block_size, 

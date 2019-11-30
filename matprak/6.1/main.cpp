@@ -118,25 +118,24 @@ void* thread_function(void* in){
     
     pthread_barrier_wait(args->barrier);
     
-    
+    if(m != p-1){
         for(int y = 0; y < n2; y++){
             double c = 0;
             double sum = 0;
             
-            if(y*n1 + m*length + end_length-1 > 0 ){
+            temps[0] = a[y*n1 + m*length + end_length - 1];
+            
+            //top block
+            if((y-1)*n1 + m*length + end_length - 1 > 0){
                 c+=1;
                 sum += temps[0];
             }
             
-            if((y-1)*n1 + m*length + x > 0){
-                c+=1;
-                sum += temps[x];
-            }
+            //right block
+            c+= 1;
+            sum += (args+1)->lefts[y];
             
-            if(y*n1 + m*length + x + 1 < (y+1)*n1){
-                c+= 1;
-                sum+= a[y*n1 + m*length + x + 1];
-            }
+            if()
             
             if((y+1)*n1 < n2*n1){
                 c+= 1;
@@ -146,7 +145,8 @@ void* thread_function(void* in){
             a[y*n1 + m*length + end_length-1] = sum/c;
             temps[x] = cur_num;
         }
-    
+    }
+        
     
     if(length == 1){
         //if(m != 0 && m != p-1) a[m] = ((args-1)->right_num + (args+1)->left_num)/2.0;

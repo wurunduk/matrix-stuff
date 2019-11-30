@@ -7,7 +7,7 @@
 void Matrix::FillMatrix(double* m, const int w, const int h){
 	for(int y = 0; y < h; y++)
 		for(int x = 0; x < w; x++)
-			m[y*w + x] = 1.0/(x+y+1);
+			m[y*w + x] = fabs(x-y);
 }
 
 void Matrix::GetAnswerVector(double* vector, const int size){
@@ -625,8 +625,6 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 									offset*block_size + block_size, indexes[y]*block_size + block_size, size);
 			EMatrix(inverse_block, block_size);
 			if(GetInverseMatrix(block, inverse_block, block_size, n, indexes_m)){
-                Print(inverse_block, block_size);
-                printf("step %d block %d\n\n", offset, y);
                 found_inversable = 1;
                 double k = Length(inverse_block, block_size, block_size);
                 if(minimal_norm > k){
@@ -639,14 +637,11 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
             printf("No matrices can be inverted on column %d\n", offset);
             return;
         }
-        
-        printf("step %d\n", offset);
 		
 		//now we can swap the top and the lowest block line
 		int temp_index = indexes[offset];
 		indexes[offset] = indexes[minimal_norm_index];
 		indexes[minimal_norm_index] = temp_index;
-        
         
         GetBlock(matrix, block, offset*block_size, indexes[offset]*block_size, 
 								offset*block_size + block_size, indexes[offset]*block_size + block_size, size);
@@ -673,8 +668,6 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
             PutBlock(matrix, block_me_temp, step*block_size, indexes[offset]*block_size, 
 											step*block_size + end, indexes[offset]*block_size + block_size, size);
 		}
-
-		//Print(matrix, size);
 		
         //normalize the first row of the matrix
         for(int x = offset; x < step; x++){
@@ -685,12 +678,6 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 			MultiplyMatrices(inverse_block, block, block_temp, block_size, block_size, block_size);
             PutBlock(matrix, block_temp, x*block_size, indexes[offset]*block_size, 
 										 x*block_size + block_size, indexes[offset]*block_size + block_size, size);
-
-            if(offset == 0){
-                Print(block, block_size);
-                Print(inverse_block, block_size);
-                Print(block_temp, block_size);
-            }
         }
         
         
@@ -728,7 +715,7 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
             }
             
             //substract all blocks
-            for(int x = step-1; x >= step; x--){
+            for(int x = step-1; x >= offset; x--){
                 GetBlock(matrix, block_temp, x*block_size, indexes[offset]*block_size, 
 											 x*block_size + block_size, indexes[offset]*block_size + block_size, size);
                 //multiply block_temp by block and put into block_temp_im
@@ -747,7 +734,6 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 			//first element of the last end row   
             GetBlock(matrix, block_me, offset*block_size, step*block_size, 
 									offset*block_size + block_size, step*block_size + end, size);
-
             
             //rhs vector end block
             GetBlock(rhs, vector_e, 0, step*block_size, 
@@ -766,7 +752,7 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 									   step*block_size + end, step*block_size + end, size);
             
             //substract all blocks
-            for(int x = step-1; x >= step; x--){
+            for(int x = step-1; x >= offset; x--){
                 GetBlock(matrix, block_temp, x*block_size, indexes[offset]*block_size, 
 											 x*block_size + block_size, indexes[offset]*block_size + block_size, size);
 				MultiplyMatrices(block_me, block_temp, block_me_temp_im, end, block_size, block_size);
@@ -777,9 +763,13 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 											 		x*block_size + block_size, step*block_size + end, size);
             }
 		}
-
+		
+		//Print(matrix, size);
+		
 		offset += 1;
 	}
+	
+	//Print(matrix, size);
 	
 	//backwards step
 	for (int y = step-1; y > 0; y--){

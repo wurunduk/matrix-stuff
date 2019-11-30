@@ -67,13 +67,13 @@ void* thread_function(void* in){
         temps = new double[length];
     }
     
-    for(y = 0; y < n2; y++){
+//     for(int y = 0; y < n2; y++){
         //FIX HERE SOMETHING PLEASE
         //if thread has a single element, make sure left and right elemt is this element
         lefts[y] = a[y*n1 + m*length];
         rights[y] = a[y*n1 + m*length];
         
-        double temps[0];
+        
         if(m == 0) temps[0] = a[y*n1];
         else temps[0] = a[y*n1 + length*m - 1];
         
@@ -135,52 +135,26 @@ void* thread_function(void* in){
             c+= 1;
             sum += (args+1)->lefts[y];
             
-            if()
+            //left block
+            if(y*n1 + m*length + end_length - 2 > 0 ){
+                if(y*n1 + m*length + end_length - 2 > y*n1 + m*length){
+                    sum += args->lefts[y];
+                    c += 1;
+                }
+                else if(m != 0){
+                    sum += (args-1)->lefts[y];
+                    c+= 1;
+                }
+            }
             
+            //bottom block
             if((y+1)*n1 < n2*n1){
                 c+= 1;
-                sum += a[(y+1)*n1 + m*length + x];
+                sum += a[(y+1)*n1 + m*length + end_length - 1];
             }
             
             a[y*n1 + m*length + end_length-1] = sum/c;
-            temps[x] = cur_num;
         }
-    }
-        
-    
-    if(length == 1){
-        //if(m != 0 && m != p-1) a[m] = ((args-1)->right_num + (args+1)->left_num)/2.0;
-    }
-    else if(m != p-1){
-        for(int y = 0; y < n2; y++){
-            a[y*n1 + m*length + end_length-1] = 
-            double c = 0;
-            double sum = 0;
-            
-            if(y*n1 + m*length + end_length-2 > 0 ){
-                c+=1;
-                sum += temps[0];
-            }
-            
-            if((y-1)*n1 + m*length + x > 0){
-                c+=1;
-                sum += temps[x];
-            }
-            
-            if(y*n1 + m*length + x + 1 < (y+1)*n1){
-                c+= 1;
-                sum+= a[y*n1 + m*length + x + 1];
-            }
-            
-            if((y+1)*n1 < n2*n1){
-                c+= 1;
-                sum += a[(y+1)*n1 + m*length + x];
-            }
-            
-            a[y*n1 + m*length + end_length-1] = sum/c;
-            temps[x] = cur_num;
-        }
-        a[end_index-1] = (args->right_num + (args+1)->left_num)/2.0;
     }
         
     args->work_time = get_time() - args->work_time;

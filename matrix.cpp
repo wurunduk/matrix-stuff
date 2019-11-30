@@ -660,13 +660,9 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
         
         GetBlock(matrix, block, offset*block_size, indexes[offset]*block_size, 
 								offset*block_size + block_size, indexes[offset]*block_size + block_size, size);
-        PrintClean(block, block_size, block_size);
         EMatrix(inverse_block, block_size);
         //we know this matrix exists, no need to check it
         GetInverseMatrix(block, inverse_block, block_size, n, indexes_m);
-        
-        
-        PrintClean(inverse_block, block_size, block_size);
 
         //normalize the top row of blocks
         //firstly normalize the rhs vector
@@ -697,8 +693,6 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
             PutBlock(matrix, block_temp, x*block_size, indexes[offset]*block_size, 
 										 x*block_size + block_size, indexes[offset]*block_size + block_size, size);
         }
-        
-        PrintClean(matrix, size, size);
         
 		//everything normalized, block_me_temp has ready me normalized block of the top row
 		//vector_block_temp has the same for rhs vector
@@ -781,6 +775,8 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 											 		x*block_size + block_size, step*block_size + end, size);
             }
 		}
+		
+		PrintClean(rhs, 1, size);
 		
 		offset += 1;
 	}

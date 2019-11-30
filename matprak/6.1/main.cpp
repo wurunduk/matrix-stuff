@@ -11,8 +11,8 @@ typedef struct{
     int m;
     int p;
     
-    double left_num;
-    double right_num;
+    double* lefts;
+    double* rights;
     
     double work_time = 0;
     
@@ -43,45 +43,143 @@ void* thread_function(void* in){
     
     args->work_time = get_time();
     
-    int p = args->p;
-    int m = args->m;
+    int n1 = args->n1;
+    int n2 = args->n2;
+    int p = args->p;    //total threads amount
+    int m = args->m;    //current thread id
     double* a = args->a;
     
-    int length = args->n1*args->n2/p;
+    double* lefts = args->lefts;
+    double* rights = args->rights;
+    
+    double* temps;
+    
+    int length = n1/p;
     double cur_num = 0;
 
-    int end_index = length*(m+1);
+    int end_length = length;
     //last thread needs to finish the end part aswell
-    if(args->m == p - 1){
-        end_index += args->n1*args->n2 % p;
+    if(m == p - 1){
+        end_length += n1 % p;
+        temps = new double[length + n1%p];
+    }
+    else{
+        temps = new double[length];
     }
     
-    args->left_num = a[length*m];
-    args->right_num = a[length*m];
-    double temp = 0;
-    if(m == 0) temp = a[0];
-    else temp = a[length*m - 1];
-    
-    //printf("thread %d works from %d to %d\n", m, length*m, end_index);
-    
-    for(int i = length*m; i < end_index - 1; i++){
-        //no neighbours for end elements
-        if(i == 0 || i == args->n1*args->n2 - 1) continue;
-        //save the last element of thsi threads array so we can count it later using other thread's result
-        if(i == end_index - 2){
-            args->right_num = a[i];
+    for(y = 0; y < n2; y++){
+        //FIX HERE SOMETHING PLEASE
+        //if thread has a single element, make sure left and right elemt is this element
+        lefts[y] = a[y*n1 + m*length];
+        rights[y] = a[y*n1 + m*length];
+        
+        double temps[0];
+        if(m == 0) temps[0] = a[y*n1];
+        else temps[0] = a[y*n1 + length*m - 1];
+        
+        //printf("thread %d works from %d to %d\n", m, length*m, end_index);
+        
+        for(int x = 0; x < end_length - 1; x++){
+            //save the last element of this threads array so we can count it later using other thread's result
+            if(x == end_length - 2){
+                rights[y] = a[y*n1 + m*length + x];
+            }
+            
+            cur_num = a[y*n1 + m*length + x];
+            
+            double c = 0;
+            double sum = 0;
+            
+            if(y*n1 + m*length + x - 1 > 0 ){
+                c+=1;
+                sum += temps[0];
+            }
+            
+            if((y-1)*n1 + m*length + x > 0){
+                c+=1;
+                sum += temps[x];
+            }
+            
+            if(y*n1 + m*length + x + 1 < (y+1)*n1){
+                c+= 1;
+                sum+= a[y*n1 + m*length + x + 1];
+            }
+            
+            if((y+1)*n1 < n2*n1){
+                c+= 1;
+                sum += a[(y+1)*n1 + m*length + x];
+            }
+            
+            a[y*n1 + m*length + x] = sum/c;
+            temps[x] = cur_num;
         }
-        cur_num = a[i];
-        a[i] = (temp + a[i+1])/2.0;
-        temp = cur_num;
     }
+    
     
     pthread_barrier_wait(args->barrier);
     
+    
+        for(int y = 0; y < n2; y++){
+            double c = 0;
+            double sum = 0;
+            
+            if(y*n1 + m*length + end_length-1 > 0 ){
+                c+=1;
+                sum += temps[0];
+            }
+            
+            if((y-1)*n1 + m*length + x > 0){
+                c+=1;
+                sum += temps[x];
+            }
+            
+            if(y*n1 + m*length + x + 1 < (y+1)*n1){
+                c+= 1;
+                sum+= a[y*n1 + m*length + x + 1];
+            }
+            
+            if((y+1)*n1 < n2*n1){
+                c+= 1;
+                sum += a[(y+1)*n1 + m*length + x];
+            }
+            
+            a[y*n1 + m*length + end_length-1] = sum/c;
+            temps[x] = cur_num;
+        }
+    
+    
     if(length == 1){
-        if(m != 0 && m != p-1) a[m] = ((args-1)->right_num + (args+1)->left_num)/2.0;
+        //if(m != 0 && m != p-1) a[m] = ((args-1)->right_num + (args+1)->left_num)/2.0;
     }
     else if(m != p-1){
+        for(int y = 0; y < n2; y++){
+            a[y*n1 + m*length + end_length-1] = 
+            double c = 0;
+            double sum = 0;
+            
+            if(y*n1 + m*length + end_length-2 > 0 ){
+                c+=1;
+                sum += temps[0];
+            }
+            
+            if((y-1)*n1 + m*length + x > 0){
+                c+=1;
+                sum += temps[x];
+            }
+            
+            if(y*n1 + m*length + x + 1 < (y+1)*n1){
+                c+= 1;
+                sum+= a[y*n1 + m*length + x + 1];
+            }
+            
+            if((y+1)*n1 < n2*n1){
+                c+= 1;
+                sum += a[(y+1)*n1 + m*length + x];
+            }
+            
+            a[y*n1 + m*length + end_length-1] = sum/c;
+            temps[x] = cur_num;
+        }
         a[end_index-1] = (args->right_num + (args+1)->left_num)/2.0;
     }
         
@@ -154,6 +252,14 @@ int main(int argc, char* argv[]) {
     
     double* a = new double[n1*n2];
     
+    double** lefts_array = new double*[p];
+    double** rights_array = new double*[p];
+    
+    for(int i = 0; i < p; i ++){
+        lefts_array[i] = new double[n2];
+        rights_array[i] = new double[n2];
+    }
+    
     if(argc == 5){
         file_name = argv[4];
         int res = read_file(a, n1, n2, file_name);
@@ -183,8 +289,8 @@ int main(int argc, char* argv[]) {
     int m;
     int p;
     
-    double left_num;
-    double right_num;
+    double* lefts;
+    double* rights;
     
     double work_time = 0;
     
@@ -197,8 +303,8 @@ int main(int argc, char* argv[]) {
         args[i].n2 = n2;
         args[i].m = i;
         args[i].p = p;
-        args[i].left_num = 0;
-        args[i].right_num = 0;
+        args[i].lefts = lefts_array[i];
+        args[i].rights = rights_array[i];
         args[i].work_time = 0;
         args[i].barrier = &barrier;
         if(pthread_create(&threads[i], 0, &thread_function, args+i))
@@ -206,6 +312,14 @@ int main(int argc, char* argv[]) {
             delete[] a;
             delete[] threads;
             delete[] args;
+            
+            for(int i = 0; i < p; i ++){
+                delete[] lefts_array;
+                delete[] rights_array;
+            }
+            
+            delete[] lefts_array;
+            delete[] rights_array;
             printf("Could not create a thread %d.\n", i);
             return -1;
         }
@@ -225,6 +339,14 @@ int main(int argc, char* argv[]) {
     delete[] a;
     delete[] threads;
     delete[] args;
+    
+    for(int i = 0; i < p; i ++){
+        delete[] lefts_array;
+        delete[] rights_array;
+    }
+    
+    delete[] lefts_array;
+    delete[] rights_array;
     
     return 0;
 }

@@ -815,7 +815,7 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
                                             1, indexes[y]*block_size + block_size, 1);
             
             SubstractMatrices(vector_block_temp, vector_block, 1, block_size);
-            GetBlock(rhs, vector_block_temp, 0, indexes[y]*block_size,
+            PutBlock(rhs, vector_block_temp, 0, indexes[y]*block_size,
                                             1, indexes[y]*block_size + block_size, 1);
         }
     }   

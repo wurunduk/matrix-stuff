@@ -2,11 +2,12 @@
 #include "matrix_exception.h"
 
 #include <cmath>
+#include <string.h>
 
 void Matrix::FillMatrix(double* m, const int w, const int h){
 	for(int y = 0; y < h; y++)
 		for(int x = 0; x < w; x++)
-			m[y*w + x] = 1.0/(y+x+1);
+			m[y*w + x] = fabs(x-y);
 }
 
 void Matrix::GetAnswerVector(double* vector, const int size){
@@ -384,7 +385,24 @@ int Matrix::GetInverseMatrix(double* matrix, double* matrixReversed, int m, doub
   return 1;
 }
 
-double* Matrix::MultiplyMatrices(const double* matrix1, const double* matrix2, double* res, const int h, const int wh, const int w){
+double* Matrix::MultiplyMatrices(double* matrix1, double* matrix2, double* res, const int h, const int wh, const int w){
+	if(h == wh && wh == w){
+		if(h % 4 == 0){
+			MultiplyMatricesNN_4(matrix1, matrix2, res, h);
+			return res;
+		}
+		else{
+			MultiplyMatricesNN(matrix1, matrix2, res, h);
+			return res;
+		}
+	}
+	else
+		MultiplyMatricesNMK(matrix1, matrix2, res, h, wh, w);
+
+	return res;
+}
+
+double* Matrix::MultiplyMatricesNMK(double* matrix1, double* matrix2, double* res, const int h, const int wh, const int w){
 	int q = 0;
 	double sum = 0;
 	for(int y = 0; y < h; y++){
@@ -403,6 +421,135 @@ double* Matrix::MultiplyMatrices(const double* matrix1, const double* matrix2, d
 		}
 	}
 	return res;
+}
+
+void Matrix::MultiplyMatricesNN_4(double* a, double* b, double* c, const int m){
+	const double * pa, * pb;
+  double * pc;
+  double s00, s01, s02, s03;
+  double s10, s11, s12, s13;
+  double s20, s21, s22, s23;
+  double s30, s31, s32, s33;
+  double a0, a1, a2, a3;
+  double b0, b1, b2, b3;
+  int i, j, k;
+  bzero (c, m * m * sizeof (double));
+  // matrix_0 (c, m);
+  for (i = 0; i < m; i += 4)
+    {
+      for (j = 0; j < m; j += 4)
+        {
+          s00 = 0;
+          s01 = 0;
+          s02 = 0;
+          s03 = 0;
+
+          s10 = 0;
+          s11 = 0;
+          s12 = 0;
+          s13 = 0;
+
+          s20 = 0;
+          s21 = 0;
+          s22 = 0;
+          s23 = 0;
+
+          s30 = 0;
+          s31 = 0;
+          s32 = 0;
+          s33 = 0;
+
+          pa = a + i * m;
+          pb = b + j;
+
+          for (k = 0; k < m; k++)
+            {
+              a0 = pa[0];
+              a1 = pa[m];
+              a2 = pa[2 * m];
+              a3 = pa[3 * m];
+
+              b0 = pb[0];
+              b1 = pb[1];
+              b2 = pb[2];
+              b3 = pb[3];
+
+              s00 += a0 * b0;
+              s01 += a0 * b1;
+              s02 += a0 * b2;
+              s03 += a0 * b3;
+
+              s10 += a1 * b0;
+              s11 += a1 * b1;
+              s12 += a1 * b2;
+              s13 += a1 * b3;
+
+              s20 += a2 * b0;
+              s21 += a2 * b1;
+              s22 += a2 * b2;
+              s23 += a2 * b3;
+
+              s30 += a3 * b0;
+              s31 += a3 * b1;
+              s32 += a3 * b2;
+              s33 += a3 * b3;
+
+              pa += 1;
+              pb += m;
+            }
+          pc = c + i * m + j;
+
+          pc[0] += s00;
+          pc[1] += s01;
+          pc[2] += s02;
+          pc[3] += s03;
+
+          pc[m] += s10;
+          pc[m + 1] += s11;
+          pc[m + 2] += s12;
+          pc[m + 3] += s13;
+
+          pc[2 * m] += s20;
+          pc[2 * m + 1] += s21;
+          pc[2 * m + 2] += s22;
+          pc[2 * m + 3] += s23;
+
+          pc[3 * m] += s30;
+          pc[3 * m + 1] += s31;
+          pc[3 * m + 2] += s32;
+          pc[3 * m + 3] += s33;
+        }
+    }
+}
+
+void Matrix::MultiplyMatricesNN(double* a, double* b, double* c, const int n){
+	int bm, bi, nbm, nbi, N = 16;
+  int l, nl;
+  int i, j, m;
+  double *pa, *pb, *pc, s;
+  for (bm = 0; bm < n; bm += N)
+    {
+      nbm = (bm + N <= n ? bm + N : n);
+      for (bi = 0; bi < n; bi += N)
+        {
+          nbi = (bi + N <= n ? bi + N : n);
+          for (m = bm, pc = c + bm; m < nbm; m++, pc++)
+            for (i = bi; i < nbi; i++)
+              pc[i * n] = 0.;
+          for (l = 0; l < n; l += N)
+            {
+              nl = (l + N <= n ? l + N : n);
+              for (m = bm, pc = c+bm; m < nbm; m++, pc++)
+                for (i = bi, pb = b + m; i < nbi; i++)
+                  {
+                    pa = a + l + i * n;
+                    for (s = 0., j = l; j < nl; j++)
+                      s += *(pa++) * pb[j * n];
+                    pc[i * n] += s;
+                  }
+            }
+        }
+    }
 }
 
 double* Matrix::SubstractMatrices(double* matrix, const double* matrix2, const int w, const int h){

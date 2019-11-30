@@ -782,15 +782,8 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
             }
 		}
 		
-		PrintClean(matrix, size, size);
-        PrintClean(rhs, 1, size);
-        
-        printf("ended step %d\n\n", offset);
-		
 		offset += 1;
 	}
-	
-	printf("backwards stuff\n\n\n");
 	
 	//backwards step
 	for (int x = step-1; x > 0; x--){
@@ -809,23 +802,30 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
           	PutBlock (rhs, vector_block, 0, indexes[y] * block_size, 
 										 1, indexes[y] * block_size + block_size, 1);
         }
-        
-        
-        
-        PrintClean(matrix, size, size);
-        PrintClean(rhs, 1, size);
     }
     
-    PrintClean(matrix, size, size);
-    PrintClean(rhs, 1, size);
+    if(end > 0){
+        GetBlock(rhs, vector_e, 0, step*block_size, 
+                                1, step*block_size + end, 1);
+        for(int y = 0; y < step; y++){
+            GetBlock(matrix, block_me, step*block_size, indexes[y]*block_size, 
+									step*block_size + end, indexes[y]*block_size + block_size, size);
+            MultiplyMatrices(block_me, vector_e, vector_block, block_size, end, 1);
+            GetBlock(rhs, vector_block_temp, 0, indexes[y]*block_size,
+                                            1, indexes[y]*block_size + block_size, 1);
+            
+            SubstractMatrices(vector_block_temp, vector_block, 1, block_size);
+            GetBlock(rhs, vector_block_temp, 0, indexes[y]*block_size,
+                                            1, indexes[y]*block_size + block_size, 1);
+        }
+    }   
 	
 	//swap the answer vector back
 	for(int y = 0; y < size; y++){
-        
-            if(y < step*block_size)
-                answer[y] = rhs[indexes[y/block_size]*block_size + y%block_size];
-            else
-                answer[y] = rhs[y];
+        if(y < step*block_size)
+            answer[y] = rhs[indexes[y/block_size]*block_size + y%block_size];
+        else
+            answer[y] = rhs[y];
     }
 	
 	

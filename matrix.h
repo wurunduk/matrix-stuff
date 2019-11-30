@@ -7,6 +7,7 @@
 namespace Matrix{
 	void FillMatrix(double* matrix, const int w, const int h);	
 	void GetAnswerVector(double* vector, const int size);
+    void PrintClean(const double* matrix, const int w, const int h);
     void Print(const double* matrix, const int size, int print_size = 10);
 	void Print(const double* matrix, const int size, const int* indexes, int print_size = 10);
 	void PrintVector(const double* vector, const int size, int print_size = 10);

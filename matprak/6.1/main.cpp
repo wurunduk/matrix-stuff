@@ -61,103 +61,125 @@ void* thread_function(void* in){
     //last thread needs to finish the end part aswell
     if(m == p - 1){
         end_length += n1 % p;
-        temps = new double[length + n1%p];
+        temps = new double[length + n1%p + 1];
     }
     else{
-        temps = new double[length];
+        temps = new double[length + 1];
     }
     
-//     for(int y = 0; y < n2; y++){
+     for(int y = 0; y < n2; y++){
         //FIX HERE SOMETHING PLEASE
         //if thread has a single element, make sure left and right elemt is this element
         lefts[y] = a[y*n1 + m*length];
         rights[y] = a[y*n1 + m*length];
-        
         
         if(m == 0) temps[0] = a[y*n1];
         else temps[0] = a[y*n1 + length*m - 1];
         
         //printf("thread %d works from %d to %d\n", m, length*m, end_index);
         
-        for(int x = 0; x < end_length - 1; x++){
-            //save the last element of this threads array so we can count it later using other thread's result
+        //add -1 to this index
+        for(int x = 0; x < end_length-1; x++){
+            //save the last element of this thread's array so we can count it later using other thread's result
             if(x == end_length - 2){
                 rights[y] = a[y*n1 + m*length + x];
             }
             
             cur_num = a[y*n1 + m*length + x];
             
-            double c = 0;
+            int c = 0;
             double sum = 0;
             
-            if(y*n1 + m*length + x - 1 > 0 ){
+            //position of the current point is y*n1 + m*length + x
+            
+            //on top of the current position
+            if(y > 0){
                 c+=1;
-                sum += temps[0];
+                sum += temps[x + 1];
+                //sum += 1;
             }
             
-            if((y-1)*n1 + m*length + x > 0){
-                c+=1;
-                sum += temps[x];
-            }
-            
-            if(y*n1 + m*length + x + 1 < (y+1)*n1){
+            //right of the current position
+            if(m*length + x + 1 < n1){
                 c+= 1;
                 sum+= a[y*n1 + m*length + x + 1];
+                //sum += 2;
             }
             
-            if((y+1)*n1 < n2*n1){
+            //left of the current position
+            if(m*length + x - 1 >= 0 ){
+                c+=1;
+                if(x == 0) sum += temps[x];
+                else sum += temps[x];
+                //sum += 4;
+            }
+            
+            //below the current position
+            if(y + 1 < n2){
                 c+= 1;
                 sum += a[(y+1)*n1 + m*length + x];
+                //sum += 8;
             }
             
-            a[y*n1 + m*length + x] = sum/c;
-            temps[x] = cur_num;
+            if(c != 1) a[y*n1 + m*length + x] = sum/c;
+            temps[x+1] = cur_num;
         }
     }
     
     
     pthread_barrier_wait(args->barrier);
     
-    if(m != p-1){
+
         for(int y = 0; y < n2; y++){
-            double c = 0;
+            int c = 0;
             double sum = 0;
             
             temps[0] = a[y*n1 + m*length + end_length - 1];
             
             //top block
-            if((y-1)*n1 + m*length + end_length - 1 > 0){
+            if(y > 0){
                 c+=1;
                 sum += temps[0];
+                //sum += 1;
             }
-            
+                
             //right block
-            c+= 1;
-            sum += (args+1)->lefts[y];
-            
+            if(m != p-1){
+                c += 1;
+                sum += (args+1)->rights[y];
+                //sum += 2;
+            }
+        
             //left block
-            if(y*n1 + m*length + end_length - 2 > 0 ){
-                if(y*n1 + m*length + end_length - 2 > y*n1 + m*length){
-                    sum += args->lefts[y];
+            if(m*length + end_length - 1 - 1 >= 0 ){
+                //this thread has a column of size 1 - which means we have to take the last number from a left neighbout thread
+                if(end_length == 1){
                     c += 1;
+                    sum += (args-1)->rights[y];
+                    //sum+=4;
                 }
-                else if(m != 0){
-                    sum += (args-1)->lefts[y];
+                //otherwise we have it stored
+                else{
                     c+= 1;
+                    sum += args->rights[y];
+                    //sum += 4;
                 }
             }
             
             //bottom block
-            if((y+1)*n1 < n2*n1){
+            if(y + 1 < n2){
                 c+= 1;
                 sum += a[(y+1)*n1 + m*length + end_length - 1];
+                //sum += 8;
             }
             
-            a[y*n1 + m*length + end_length-1] = sum/c;
-        }
+            if(c != 1) a[y*n1 + m*length + end_length-1] = sum/c;
+        
     }
         
     args->work_time = get_time() - args->work_time;
+    
+    delete[] temps;
     
     return 0;
 }
@@ -189,7 +211,7 @@ void print_matrix(double* a, int width, int height, int print_size = 10){
 void fill_function(double* a, int n1, int n2){
     for(int y = 0; y < n2; y++)
         for(int x = 0; x < n1; x++)
-            a[x + n1*y] = 1.0/(x+y+1);
+            a[x + n1*y] = x+y;
 }
 
 int read_file(double* matrix, int n1, int n2, char* file_name){
@@ -219,9 +241,9 @@ int main(int argc, char* argv[]) {
     if(file_name) printf(", file %s.", argv[4]);
     printf("\n");
     
-    if(p > n1*n2){
+    if(p > n1){
         printf("Tried to use more threads than makes sense, using %d threads.\n", n1*n2);
-        p = n1*n2;
+        p = n1;
     }
     
     double* a = new double[n1*n2];

@@ -68,6 +68,7 @@ void* thread_function(void* in){
     }
     
      for(int y = 0; y < n2; y++){
+        
         //FIX HERE SOMETHING PLEASE
         //if thread has a single element, make sure left and right elemt is this element
         lefts[y] = a[y*n1 + m*length];
@@ -121,7 +122,7 @@ void* thread_function(void* in){
                 //sum += 8;
             }
             
-            if(c != 1) a[y*n1 + m*length + x] = sum/c;
+            if(c > 1) a[y*n1 + m*length + x] = sum/c;
             temps[x+1] = cur_num;
         }
     }
@@ -131,10 +132,9 @@ void* thread_function(void* in){
     
 
         for(int y = 0; y < n2; y++){
+            
             int c = 0;
             double sum = 0;
-            
-            temps[0] = a[y*n1 + m*length + end_length - 1];
             
             //top block
             if(y > 0){
@@ -173,7 +173,9 @@ void* thread_function(void* in){
                 //sum += 8;
             }
             
-            if(c != 1) a[y*n1 + m*length + end_length-1] = sum/c;
+            temps[0] = a[y*n1 + m*length + end_length - 1];
+            
+            if(c > 1) a[y*n1 + m*length + end_length-1] = sum/c;
         
     }
         
@@ -211,7 +213,7 @@ void print_matrix(double* a, int width, int height, int print_size = 10){
 void fill_function(double* a, int n1, int n2){
     for(int y = 0; y < n2; y++)
         for(int x = 0; x < n1; x++)
-            a[x + n1*y] = x+y;
+            a[x + n1*y] = 1.0/(x+y+1);
 }
 
 int read_file(double* matrix, int n1, int n2, char* file_name){

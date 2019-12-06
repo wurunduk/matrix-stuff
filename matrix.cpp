@@ -674,8 +674,7 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 		MultiplyMatrices(inverse_block, vector_block, vector_block_temp, block_size, block_size, 1);
         PutBlock(rhs, vector_block_temp, 0, indexes[offset]*block_size, 
 										 1, (indexes[offset]+1)*block_size, 1);
-		
-		PrintClean(matrix, size, size);        
+		 
 
 
 		//if unfull end block exists norm it too
@@ -684,8 +683,6 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 									   step*block_size + end, indexes[offset]*block_size + block_size, size);
             //multiply block_me by inverse_block and put into block_me_temp
 			MultiplyMatrices(inverse_block, block_me, block_me_temp, block_size, block_size, end);
-			PrintClean(block_me, end, block_size);
-			PrintClean(block_me_temp, end, block_size);
             PutBlock(matrix, block_me_temp, step*block_size, indexes[offset]*block_size, 
 											step*block_size + end, indexes[offset]*block_size + block_size, size);
 		}
@@ -693,7 +690,7 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 		PrintClean(matrix, size, size);
 		
         //normalize the first row of the matrix
-        for(int x = offset; x < step; x++){
+        for(int x = offset+1; x < step; x++){
             //normalize current block
             GetBlock(matrix, block, x*block_size, indexes[offset]*block_size, 
 									x*block_size + block_size, indexes[offset]*block_size + block_size, size);
@@ -738,7 +735,7 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
             }
             
             //substract all blocks
-            for(int x = step-1; x >= offset; x--){
+            for(int x = step-1; x >= offset+1; x--){
                 GetBlock(matrix, block_temp, x*block_size, indexes[offset]*block_size, 
 											 x*block_size + block_size, indexes[offset]*block_size + block_size, size);
                 //multiply block_temp by block and put into block_temp_im
@@ -752,7 +749,7 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
             }
         }
 
-		//do the last row too
+		//do the last line too
 		if(end > 0){
 			PrintClean(matrix, size, size);
 			//first element of the last end row   
@@ -776,7 +773,7 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 									   step*block_size + end, step*block_size + end, size);
             
             //substract all blocks
-            for(int x = step-1; x >= offset; x--){
+            for(int x = step-1; x >= offset+1; x--){
                 GetBlock(matrix, block_temp, x*block_size, indexes[offset]*block_size, 
 											 x*block_size + block_size, indexes[offset]*block_size + block_size, size);
 				MultiplyMatrices(block_me, block_temp, block_me_temp_im, end, block_size, block_size);

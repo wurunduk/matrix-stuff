@@ -1,0 +1,168 @@
+\documentclass[12pt]{scrreprt}
+\usepackage[utf8x]{inputenc}
+\usepackage[russian]{babel}
+\usepackage{amsmath}
+\usepackage{latexsym}
+\usepackage{amssymb}
+\usepackage{indentfirst}
+\begin{document}
+\title{Метод Гаусса решения линейной системы с выбором главного элемента по столбцу}
+\maketitle
+
+\chapter{Алгоритм}
+
+Требуется решить систему линейных уравнений \( Ax=b \) ( \( A \) - матрица размера \( n\times n \), \(b\) - \(n\)-мерный вектор свободных членов) методом Гаусса с выбором главного элемента по столбцу. Зададим m - размер блока матрицы. Тогда n = mk + l и матрица представима в виде:
+\[ \left( \begin{matrix}
+{A_{0, 0}^{m \times m}} & {A_{0, 1}^{m \times m}} & {\dots} & {A_{0, k-1}^{m \times m}} & {A_{0, k}^{m \times l}} & {b_{0}^{m}} \\
+{A_{1, 0}^{m \times m}} & {A_{1, 0}^{m \times m}} & {\dots} & {A_{1, k-1}^{m \times m}} & {A_{1, k}^{m \times l}} & {b_{1}^{m}} \\
+{\vdots} & {\vdots} & {\vdots} & {\vdots} & {\vdots} & {\vdots} \\
+{A_{k-1, 0}^{m \times m}} & {A_{k-1, 1}^{m \times m}} & {\dots} & {A_{k-1, k-1}^{m \times m}} & {A_{k-1, k}^{m \times l}} & {b_{k-1}^{m}} \\
+{A_{k,0}^{l \times m}} & {A_{k,1}^{l \times m}} & {\dots} & {A_{k, k-1}^{l \times m}} & {A_{k, k}^{l \times l}} & {b_{k}^{l}}\\
+\end{matrix}\right) \]
+
+За норму возьмём максимальную норму столбца:
+$$||A^{m \times m}|| = \max \limits_{j=0, \ldots, m-1} \sum_{i=0}^{m-1} |a_{i,j}| $$
+
+Найдем в первом столбце обратный блок с минимальной нормой. Если ни у одного блока не посчиталась обратная, метод применить нельзя.
+Теперь переставляем строку у который первый блок имеет минимальную обратную с первой. Затем умножаем каждый блок первой строки на минимальную обратную слева.
+
+
+Умножаем каждый элемент первой строки на обратую первого элемента в этой строке
+
+j = 1,\ldots,k
+
+${A'}_{0, j}^{m \times m} = (A_{0, 0}^{m \times m})^{-1} \ A_{0, j}^{m \times m}$
+
+Умножаем так же блок размера $m \times l$
+
+${A'}_{0, k}^{m \times l} = (A_{0, 0}^{m \times m})^{-1} \ A_{0, k}^{m \times l}$
+
+Умножаем часть вектора b
+
+${b'}_{0}^{m} = (A_{0, 0}^{m \times m})^{-1} \ b_{0}^{m}$
+
+Получим новую матрицу вида:
+\[ \left( \begin{matrix}
+{E^{m \times m}} & {{A'}_{0, 1}^{m \times m}} & {\dots} & {{A'}_{0, k-1}^{m \times m}} & {{A'}_{0, k}^{m \times l}} & {{b'}_{0}^{m}} \\
+{A_{1, 0}^{m \times m}} & {A_{1, 1}^{m \times m}} & {\dots} & {A_{1, k-1}^{m \times m}} & {A_{1, k}^{m \times l}} & {b_{1}^{m}} \\
+{\vdots} & {\vdots} & {\vdots} & {\vdots} & {\vdots} & {\vdots} \\
+{A_{k-1, 0}^{m \times m}} & {A_{k-1, 1}^{m \times m}} & {\dots} & {A_{k-1, k-1}^{m \times m}} & {A_{k-1, k}^{m \times l}} & {b_{k-1}^{m}} \\
+{A_{k,0}^{l \times m}} & {A_{k,1}^{l \times m}} & {\dots} & {A_{k, k-1}^{l \times m}} & {A_{k, k}^{l \times l}} & {b_{k}^{l}}\\
+\end{matrix}\right) \]
+
+
+Теперь вычетаем из iой строки первую, умноженную на первый коэффициент iой строки:
+
+\( A_{i,j}^{m \times m} = A_{i,j}^{m \times m} - A_{i,0}^{m \times m}*A_{0,j}^{m \times m}, i=1,\ldots,k-1,  j=1,\ldots,k-1 \)
+
+\( A_{i,k}^{m \times l} = A_{i,k}^{m \times p} - A_{i,0}^{m \times m}*A_{0,k}^{m \times l}, i=1,\ldots,k-1\)
+
+\( A_{k,i}^{l \times m} = A_{k,i}^{l \times m} - A_{k,0}^{l \times m}*A_{0,i}^{m \times l}, i=1,\ldots,k-1\)
+
+\( A_{k,k}^{l \times l} = A_{k,k}^{l \times l} - A_{k,0}^{l \times m}*A_{0,k}^{m \times l}\)
+
+\( b_{i}^{m} = b_{i}^{m} - A_{i,1}^{m \times m}*b_{0}^{m}, i=1,\ldots,k-1\)
+
+\( b_{k}^{l} = b_{k}^{l} - A_{k,1}^{l \times m}*b_{0}^{m}\)
+
+Получим матрицу вида:
+\[ \left( \begin{matrix}
+{E^{m \times m}} & {{A}_{0, 1}^{m \times m}} & {\dots} & {{A}_{0, k-1}^{m \times m}} & {{A}_{0, k}^{m \times l}} & {{b}_{0}^{m}} \\
+{0} & {A_{1, 1}^{m \times m}} & {\dots} & {A_{1, k-1}^{m \times m}} & {A_{1, k}^{m \times l}} & {b_{1}^{m}} \\
+{\vdots} & {\vdots} & {\vdots} & {\vdots} & {\vdots} & {\vdots} \\
+{0} & {A_{k-1, 1}^{m \times m}} & {\dots} & {A_{k-1, k-1}^{m \times m}} & {A_{k-1, k}^{m \times l}} & {b_{k-1}^{m}} \\
+{0} & {A_{k,1}^{l \times m}} & {\dots} & {A_{k, k-1}^{l \times m}} & {A_{k, k}^{l \times l}} & {b_{k}^{l}}\\
+\end{matrix}\right) \]
+
+
+Теперь повторяем алгоритм для подматрицы размера $(k-1) \times (k-1)$ блоков.
+Общие формулы на шаге p (p=0,\ldots,k-1):
+
+j = p+1,\ldots,k
+
+${A'}_{p, j}^{m \times m} = (A_{p, p}^{m \times m})^{-1} \ A_{p, j}^{m \times m}$
+
+Умножаем так же блок размера $m \times l$
+
+${A'}_{p, k}^{m \times l} = (A_{p, p}^{m \times m})^{-1} \ A_{p, k}^{m \times l}$
+
+Умножаем часть вектора b
+
+${b'}_{p}^{m} = (A_{p, p}^{m \times m})^{-1} \ b_{p}^{m}$\\
+
+\( A_{i,j}^{m \times m} = A_{i,j}^{m \times m} - A_{i,p}^{m \times m}*A_{p,j}^{m \times m}, i=p+1,\ldots,k-1,  j=p+1,\ldots,k-1 \)
+
+\( A_{i,k}^{m \times l} = A_{i,k}^{m \times p} - A_{i,p}^{m \times m}*A_{p,k}^{m \times l}, i=p+1,\ldots,k-1\)
+
+\( A_{k,i}^{l \times m} = A_{k,i}^{l \times m} - A_{k,p}^{l \times m}*A_{p,i}^{m \times l}, i=p+1,\ldots,k-1\)
+
+\( A_{k,k}^{l \times l} = A_{k,k}^{l \times l} - A_{k,p}^{l \times m}*A_{p,k}^{m \times l}\)
+
+\( b_{i}^{m} = b_{i}^{m} - A_{i,p}^{m \times m}*b_{l}^{m}, i=p+1,\ldots,k-1\)
+
+\( b_{k}^{l} = b_{k}^{l} - A_{k,p}^{l \times m}*b_{l}^{m}\)
+
+После прохождения алгоритма получаем верхнетругольную матрицу с единицами на диагонали.
+\[ \left( \begin{matrix}
+{E^{m \times m}} & {{A}_{0, 1}^{m \times m}} & {\dots} & {{A}_{0, k-1}^{m \times m}} & {{A}_{0, k}^{m \times l}} & {{b}_{0}^{m}} \\
+{0} & {E^{m \times m}} & {\dots} & {A_{1, k-1}^{m \times m}} & {A_{1, k}^{m \times l}} & {b_{1}^{m}} \\
+{\vdots} & {\vdots} & {\vdots} & {\vdots} & {\vdots} & {\vdots} \\
+{0} & {0} & {\dots} & {E^{m \times m}} & {A_{k-1, k}^{m \times l}} & {b_{k-1}^{m}} \\
+{0} & {0} & {\dots} & {0} & {E^{l \times l}} & {b_{k}^{l}}\\
+\end{matrix}\right) \]
+\section{Обртаный ход}
+
+\( b_{i} = b_{i} - A_{i,j}*b_{i}, j=k,\ldots,0, i=i+1,\ldots,0\)
+
+После выполнения алгоритма в векторе b будет исходный ответ.
+\bigskip
+
+\chapter{Работа с блоками}
+Для работы с блоками матрицы пригодятся две функции - для получения и изменения блоков:
+\begin{verbatim}
+void GetBlock(double* A, double* block, const int x, const int y, const int x1, const int y1, const int matrix_size);
+void PutBlock(double* A, double* block, const int x, const int y, const int x1, const int y1, const int matrix_size);
+\end{verbatim}
+
+По переданным индексам x,y и индексам конца x1,y1 кладет часть матрицы A в block.
+Во втором случае блок записывается в матрицу А на место x, y.
+Предполагается, что матрица \(A\) лежит в памяти построчно.
+\bigskip
+
+\chapter{Сложность блочного алгоритма}
+Сложность операций которые мы используем:\\
+Нахождение обратной матрицы размера n: $8/3 * (n^3)$\\
+Вычитание двух матриц размера m на n: $m * n$\\
+Перемножение двух матриц $m \times n$ и $n \times k$: $2m * n * k$\\
+
+Пусть $ k = n/m $, тогда\\
+
+Сложность нахождения обратных матриц:\\
+ $\sum_{i=0}^{k}(k-i)*(8/3 * m^3) = 8/6 * k*(k+1)*(m^3) = 8/6 * m^3 * k^2 = 8/6 * m*n^2$\\
+
+Сложность перемножения первой строки матрицы на обратный блок:\\
+ $\sum_{i=0}^{k}(k-i)*(2m^3) = m^3 * k^2 = m*n^2$\\
+
+Сложность вычитания и умножения строк:\\
+ $\sum_{i=1}^{k}(\sum_{s=i+1}^{k}(k-i)*(2m^3 + m^2)) = \sum_{i=0}^{k}(k-i)^2*(2m^3) = 2/3 * m^3 * k^3 = 2/3 * n^3 $\\
+Сложность обратного хода: $\sum_{i=0}^{k}(i)*(2 * m^2 + m^2)$
+
+$$ \sum_{} = 8/6 * m^3 * k^2 + m^3 * k^2 + 2/3 * m^3 * k^3 = 2/3 * m^3 * k^3 + 7/3 * m^3 * k^2$$\\
+
+При m = 1, k = n: $\sum_{} = 2*n^3/3$\\
+При m = n, k = 1: $\sum_{} = 3*n^3$\\
+
+\chapter{Параллельная реализация}
+Пусть p - количество потоков. Тогда каждый i-й поток будет работать с блочными строками с номерами $k \equiv i \mod p $\\
+В ходе алгоритма в начале, каждый поток находит обратную матрицу с минимальной нормой среди своих строк. \\
+После этого точка синхронизации - все потоки дожидаются, пока остальные найдут свои минимальные. \\
+Затем поток индекс котрого сравним с данномым шагом k переносит строку с наименьшей нормой обратного первого блока на k-ое место и домнажает всю строку на обратный блок. \\
+После очередной синхронизации каждый поток может вычетать k-ую строку из своих строк ($k \equiv i \mod p $ поток не вычетает свою k-ую строку из самой себя).\\
+Третья точка синхронизации и можно повторять шаг алгоритма.\\
+
+По итогу получается 3 точки синхронизации на ход, всего 3k точек синхронизации.\\
+
+
+
+
+\end{document}

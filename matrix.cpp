@@ -671,7 +671,8 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 									1, indexes[offset]*block_size + block_size, 1);
 		MultiplyMatrices(inverse_block, vector_block, vector_block_temp, block_size, block_size, 1);
         PutBlock(rhs, vector_block_temp, 0, indexes[offset]*block_size, 
-										 1, indexes[offset]*block_size + block_size, 1);		 
+										 1, indexes[offset]*block_size + block_size, 1);		
+
 
 		//if unfull end block exists norm it too
 		if(end > 0){
@@ -709,6 +710,7 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 			SubstractMatrices(vector_block, vector_block_temp_im, 1, block_size);
             PutBlock(rhs, vector_block, 0, indexes[y]*block_size, 
 										1, indexes[y]*block_size + block_size, 1);
+
             
             //end block if it exists
             if(end > 0){
@@ -787,6 +789,7 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 		PutBlock(rhs, vector_e_temp, 0, step*block_size, 
                                      1, step*block_size + end, 1);
 
+
         for(int y = 0; y < step; y++){
             GetBlock(matrix, block_me, step*block_size, indexes[y]*block_size, 
 									step*block_size + end, indexes[y]*block_size + block_size, size);
@@ -817,6 +820,8 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 			SubstractMatrices(vector_block, vector_block_temp, 1, block_size);
           	PutBlock (rhs, vector_block, 0, indexes[y] * block_size, 
 										 1, indexes[y] * block_size + block_size, 1);
+			PrintClean(matrix, size, size);
+			PrintClean(rhs, 1, size);
         }
     }
 	

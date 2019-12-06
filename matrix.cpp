@@ -626,8 +626,8 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 
 	double n = Length(matrix, size, size);
     
-    PrintClean(matrix, size, size);
-    PrintClean(rhs, 1, size);
+    //PrintClean(matrix, size, size);
+    //PrintClean(rhs, 1, size);
 
 	//when we complete a step of Gaussian algorithm, we should apply it again to the matrix of size m-1. 
 	//For that we will just think of the next element on the diagonal as the first one.
@@ -664,6 +664,8 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
         //we know this matrix exists, no need to check it
         GetInverseMatrix(block, inverse_block, block_size, n, indexes_m);
 
+		PrintClean(matrix, size, size);
+
         //normalize the top row of blocks
         //firstly normalize the rhs vector
         GetBlock(rhs, vector_block, 0, indexes[offset]*block_size, 
@@ -672,16 +674,23 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 		MultiplyMatrices(inverse_block, vector_block, vector_block_temp, block_size, block_size, 1);
         PutBlock(rhs, vector_block_temp, 0, indexes[offset]*block_size, 
 										 1, (indexes[offset]+1)*block_size, 1);
-        
+		
+		PrintClean(matrix, size, size);        
+
+
 		//if unfull end block exists norm it too
 		if(end > 0){
 			GetBlock(matrix, block_me, step*block_size, indexes[offset]*block_size, 
 									   step*block_size + end, indexes[offset]*block_size + block_size, size);
             //multiply block_me by inverse_block and put into block_me_temp
 			MultiplyMatrices(inverse_block, block_me, block_me_temp, block_size, block_size, end);
+			PrintClean(block_me, end, block_size);
+			PrintClean(block_me_temp, end, block_size);
             PutBlock(matrix, block_me_temp, step*block_size, indexes[offset]*block_size, 
 											step*block_size + end, indexes[offset]*block_size + block_size, size);
 		}
+
+		PrintClean(matrix, size, size);
 		
         //normalize the first row of the matrix
         for(int x = offset; x < step; x++){
@@ -693,6 +702,8 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
             PutBlock(matrix, block_temp, x*block_size, indexes[offset]*block_size, 
 										 x*block_size + block_size, indexes[offset]*block_size + block_size, size);
         }
+
+		PrintClean(matrix, size, size);
         
 		//everything normalized, block_me_temp has ready me normalized block of the top row
 		//vector_block_temp has the same for rhs vector
@@ -743,6 +754,7 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 
 		//do the last row too
 		if(end > 0){
+			PrintClean(matrix, size, size);
 			//first element of the last end row   
             GetBlock(matrix, block_me, offset*block_size, step*block_size, 
 									offset*block_size + block_size, step*block_size + end, size);
@@ -773,13 +785,43 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 				SubstractMatrices(block_me_temp_sub, block_me_temp_im, end, block_size);
                 PutBlock(matrix, block_me_temp_sub, x*block_size, step*block_size, 
 											 		x*block_size + block_size, step*block_size + end, size);
+				PrintClean(matrix, size, size);
             }
 		}
 		
-		PrintClean(rhs, 1, size);
-		
 		offset += 1;
 	}
+
+	if(end > 0){
+		GetBlock(matrix, block_ee, step*block_size, step*block_size, 
+									   step*block_size + end, step*block_size + end, size);
+		EMatrix(block_ee_temp, end);
+		if(!GetInverseMatrix(block_ee, block_ee_temp, end, n, indexes_m)){
+        	printf("End part of the matrix could not be inverted\n");
+            return;
+        }
+
+        GetBlock(rhs, vector_e, 0, step*block_size, 
+                                1, step*block_size + end, 1);
+		MultiplyMatrices(block_ee_temp, vector_e, vector_e_temp, end, end, 1);
+
+		PutBlock(rhs, vector_e_temp, 0, step*block_size, 
+                                1, step*block_size + end, 1);
+
+        for(int y = 0; y < step; y++){
+            GetBlock(matrix, block_me, step*block_size, indexes[y]*block_size, 
+									step*block_size + end, indexes[y]*block_size + block_size, size);
+            MultiplyMatrices(block_me, vector_e, vector_block, block_size, end, 1);
+            GetBlock(rhs, vector_block_temp, 0, indexes[y]*block_size,
+                                            1, indexes[y]*block_size + block_size, 1);
+            
+            SubstractMatrices(vector_block_temp, vector_block, 1, block_size);
+            PutBlock(rhs, vector_block_temp, 0, indexes[y]*block_size,
+                                            1, indexes[y]*block_size + block_size, 1);
+        }
+    } 
+
+	PrintClean(rhs, 1, size);
 	
 	//backwards step
 	for (int x = step-1; x > 0; x--){
@@ -793,28 +835,12 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 		
           	GetBlock (rhs, vector_block, 0, indexes[y] * block_size, 
 											1, indexes[y] * block_size + block_size, 1);
-          	//substrac vector_block and vector_block_temp put into vector_block_temp_sub
+          	//substract vector_block and vector_block_temp put into vector_block_temp_sub
 			SubstractMatrices(vector_block, vector_block_temp, 1, block_size);
           	PutBlock (rhs, vector_block, 0, indexes[y] * block_size, 
 										 1, indexes[y] * block_size + block_size, 1);
         }
     }
-    
-    if(end > 0){
-        GetBlock(rhs, vector_e, 0, step*block_size, 
-                                1, step*block_size + end, 1);
-        for(int y = 0; y < step; y++){
-            GetBlock(matrix, block_me, step*block_size, indexes[y]*block_size, 
-									step*block_size + end, indexes[y]*block_size + block_size, size);
-            MultiplyMatrices(block_me, vector_e, vector_block, block_size, end, 1);
-            GetBlock(rhs, vector_block_temp, 0, indexes[y]*block_size,
-                                            1, indexes[y]*block_size + block_size, 1);
-            
-            SubstractMatrices(vector_block_temp, vector_block, 1, block_size);
-            PutBlock(rhs, vector_block_temp, 0, indexes[y]*block_size,
-                                            1, indexes[y]*block_size + block_size, 1);
-        }
-    }   
 	
 	//swap the answer vector back
 	for(int y = 0; y < size; y++){

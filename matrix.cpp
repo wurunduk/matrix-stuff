@@ -7,7 +7,7 @@
 void Matrix::FillMatrix(double* m, const int w, const int h){
 	for(int y = 0; y < h; y++)
 		for(int x = 0; x < w; x++)
-			m[y*w + x] = 1./(x+y+1);
+			m[y*w + x] = fabs(x-y);
 }
 
 void Matrix::GetAnswerVector(double* vector, const int size){
@@ -724,18 +724,16 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
             for(int x = offset+1; x < step; x++){
                 GetBlock(matrix, block_temp, x*block_size, indexes[offset]*block_size, 
 											 x*block_size + block_size, indexes[offset]*block_size + block_size, size);
-                //multiply block_temp by block and put into block_temp_im
 				MultiplyMatrices(block, block_temp, block_temp_im, block_size, block_size, block_size);
                 GetBlock(matrix, block_temp, x*block_size, indexes[y]*block_size, 
 											 x*block_size + block_size, indexes[y]*block_size + block_size, size);
-                //substract from block_temp block_temp_im put into block_temp_sub
 				SubstractMatrices(block_temp, block_temp_im, block_size, block_size);
                 PutBlock(matrix, block_temp, x*block_size, indexes[y]*block_size, 
 											 x*block_size + block_size, indexes[y]*block_size + block_size, size);
             }
         }
 
-		//if the last rows exists, substract from them too
+		//if the last row exists, substract from them too
 		if(end > 0){
 			//first element of the last end row   
             GetBlock(matrix, block_me, offset*block_size, step*block_size, 
@@ -764,7 +762,7 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 				MultiplyMatrices(block_me, block_temp, block_me_temp_im, end, block_size, block_size);
                 GetBlock(matrix, block_me_temp_sub, x*block_size, step*block_size, 
 											 		x*block_size + block_size, step*block_size + end, size);
-				SubstractMatrices(block_me_temp_sub, block_me_temp_im, end, block_size);
+				SubstractMatrices(block_me_temp_sub, block_me_temp_im, block_size, end);
                 PutBlock(matrix, block_me_temp_sub, x*block_size, step*block_size, 
 											 		x*block_size + block_size, step*block_size + end, size);
             }
@@ -811,7 +809,7 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
           	GetBlock (matrix, block_temp, x * block_size, indexes[y] * block_size, 
 										x * block_size + block_size, indexes[y] * block_size + block_size, size);
           	//multiplication block_temp by vector_block put into vector_block_temp
-			MultiplyMatrices(vector_block, block_temp, vector_block_temp, 1, block_size, block_size);
+			MultiplyMatrices(block_temp, vector_block, vector_block_temp, block_size, block_size, 1);
 		
           	GetBlock (rhs, vector_block, 0, indexes[y] * block_size, 
 										 1, indexes[y] * block_size + block_size, 1);

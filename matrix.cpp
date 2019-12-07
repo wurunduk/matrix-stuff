@@ -7,7 +7,7 @@
 void Matrix::FillMatrix(double* m, const int w, const int h){
 	for(int y = 0; y < h; y++)
 		for(int x = 0; x < w; x++)
-			m[y*w + x] = fabs(x-y);
+			m[y*w + x] = 1./(x+y+1);
 }
 
 void Matrix::GetAnswerVector(double* vector, const int size){
@@ -263,11 +263,12 @@ int Matrix::GetInverseMatrix(double* matrix, double* matrixReversed, int m, doub
     	transposition_m[i] = i;
 
   	for (int k = 0; k < m; k++){
-      	double max_norm = -10e300;
+      	double max_norm = 0.0;
       	int i_temp = k, j_temp = k;
       	for (int i = k; i < m; i++){
           	for (int j = k; j < m; j++){
               	temp = matrix[i*m + j];
+                if(i == k && j == k) max_norm = fabs (temp);
               	if (max_norm < fabs (temp)){
                   	max_norm = fabs (temp);
                   	i_temp = i;
@@ -626,7 +627,7 @@ int Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int si
 	//when we complete a step of Gaussian algorithm, we should apply it again to the matrix of size m-1. 
 	//For that we will just think of the next element on the diagonal as the first one.
 	while(offset != step){
-		double minimal_norm = 10e300;
+		double minimal_norm = 0.0;
 		int minimal_norm_index = offset;
         int found_inversable = 0;
 		for(int y = offset; y < step; y++){
@@ -636,6 +637,7 @@ int Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int si
 			if(GetInverseMatrix(block, inverse_block, block_size, n, indexes_m)){
                 found_inversable = 1;
                 double k = Length(inverse_block, block_size, block_size);
+                if(y == offset) minimal_norm = k;
                 if(minimal_norm > k){
                     minimal_norm = k;
                     minimal_norm_index = y;

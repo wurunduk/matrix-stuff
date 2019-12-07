@@ -7,7 +7,7 @@
 void Matrix::FillMatrix(double* m, const int w, const int h){
 	for(int y = 0; y < h; y++)
 		for(int x = 0; x < w; x++)
-			m[y*w + x] = 1./(x+y+1);
+			m[y*w + x] = fabs(x-y);
 }
 
 void Matrix::GetAnswerVector(double* vector, const int size){
@@ -683,16 +683,6 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 											step*block_size + end, indexes[offset]*block_size + block_size, size);
 		}
 		
-        //normalize the first row of the matrix
-        for(int x = offset+1; x < step; x++){
-            //normalize current block
-            GetBlock(matrix, block, x*block_size, indexes[offset]*block_size, 
-									x*block_size + block_size, indexes[offset]*block_size + block_size, size);
-			MultiplyMatrices(inverse_block, block, block_temp, block_size, block_size, block_size);
-            PutBlock(matrix, block_temp, x*block_size, indexes[offset]*block_size, 
-										 x*block_size + block_size, indexes[offset]*block_size + block_size, size);
-        }
-        
 		//everything normalized, block_me_temp has ready me normalized block of the top row
 		//vector_block_temp has the same for rhs vector
 
@@ -724,8 +714,18 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
             
             //substract all other blocks
             for(int x = offset+1; x < step; x++){
-                GetBlock(matrix, block_temp, x*block_size, indexes[offset]*block_size, 
-											 x*block_size + block_size, indexes[offset]*block_size + block_size, size);
+                if(y == offset+1){
+                    //normalize current block
+                    GetBlock(matrix, block_temp_sub, x*block_size, indexes[offset]*block_size, 
+                                            x*block_size + block_size, indexes[offset]*block_size + block_size, size);
+                    MultiplyMatrices(inverse_block, block_temp_sub, block_temp, block_size, block_size, block_size);
+                    PutBlock(matrix, block_temp, x*block_size, indexes[offset]*block_size, 
+                                            x*block_size + block_size, indexes[offset]*block_size + block_size, size);
+                }
+                else{
+                    GetBlock(matrix, block_temp, x*block_size, indexes[offset]*block_size, 
+                                            x*block_size + block_size, indexes[offset]*block_size + block_size, size);
+                }
 				MultiplyMatrices(block, block_temp, block_temp_im, block_size, block_size, block_size);
                 GetBlock(matrix, block_temp, x*block_size, indexes[y]*block_size, 
 											 x*block_size + block_size, indexes[y]*block_size + block_size, size);

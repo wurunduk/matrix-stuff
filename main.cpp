@@ -48,8 +48,6 @@ int main(int argc, char* argv[]){
     printf("loading file %s with matrix size %d, block size %d\n", file_name, matrix_size, block_size);
 
     int end = matrix_size - (matrix_size/block_size)*block_size;
-    
-	auto t = clock();
 	
     //initialize used variables
     e |= Matrix::CreateMatrix(&A, matrix_size, matrix_size, file_name);
@@ -90,7 +88,11 @@ int main(int argc, char* argv[]){
     }
 	Matrix::GetRHSVector(A, b, matrix_size);
 
+    auto t = clock();
+    
     Matrix::SolveBlock(A, b, x, matrix_size, block_size, temps);
+    
+    t = clock()-t;
     
     //at this point matrix A and vector b are wrong, but we can reinitialize them;
     Matrix::InitMatrix(A, matrix_size, matrix_size, file_name);
@@ -98,19 +100,18 @@ int main(int argc, char* argv[]){
     
 	Matrix::MultiplyMatrices(A, x, Ax, matrix_size, matrix_size, 1);
     
-	printf("Solution found: \n");
+	/*printf("Solution found: \n");
 	Matrix::PrintVector(x, matrix_size);
 	printf("Resulting Ax= vector: \n");
 	Matrix::PrintVector(Ax, matrix_size);	
 	printf("Intendent b vector: \n");
-	Matrix::PrintVector(b, matrix_size);
-
+	Matrix::PrintVector(b, matrix_size);*/
+    
 	double residual = Matrix::LengthVector(Matrix::SubstractMatrices(Ax, b, matrix_size, 1), matrix_size);
 	//double error = Matrix::LengthVector(Matrix::SubstractVectors(x, x1, matrix_size), matrix_size);
     double error = Matrix::GetError(x, matrix_size);
 
 	printf("Residual=%e\nerror=%e\n", residual, error);
-	t = clock()-t;
     printf("Elapsed time: %f\n", static_cast<float>(t)/CLOCKS_PER_SEC);
     
 	if(A) delete[] A;

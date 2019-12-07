@@ -225,6 +225,11 @@ void print_error(int id){
             break;
         default:
             printf("Unknown error\n");
+            
+            
+            
+            
+            
     }
 }
 

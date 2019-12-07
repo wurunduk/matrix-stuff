@@ -644,6 +644,8 @@ int Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int si
 		}
 		if(found_inversable == 0){
             printf("No matrices can be inverted on column %d\n", offset);
+            delete[] indexes;
+            delete[] indexes_m;
             return -1;
         }
 		
@@ -774,6 +776,8 @@ int Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int si
 		EMatrix(block_ee_temp, end);
 		if(!GetInverseMatrix(block_ee, block_ee_temp, end, n, indexes_m)){
         	printf("End part of the matrix could not be inverted\n");
+            delete[] indexes;
+            delete[] indexes_m;
             return -1;
         }
 

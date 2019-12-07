@@ -108,7 +108,9 @@ void* thread_function(void* in){
             
             cur_num = a[y*n1 + m*length + x];
             
+            //amount of actuall lower numbers around
             int c = 0;
+            //amount of numbers around
             int b = 0;
             
             //position of the current point is y*n1 + m*length + x
@@ -226,12 +228,12 @@ void print_error(int id){
     }
 }
 
-void print_matrix(double* a, int width, int height, int print_size = 10){
+void print_matrix(double* a, int width, int height, int print_size = 30){
     int pw = width > print_size ? print_size : width;
     int ph = height > print_size ? print_size : height;
     for(int y = 0; y < ph; y++){
         for(int x = 0; x < pw; x++)
-            printf("%lf ", a[x+y*width]);
+            printf("%.2lf ", a[x+y*width]);
     printf("\n");
     }
 }

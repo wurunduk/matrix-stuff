@@ -43,7 +43,7 @@ int main(int argc, char* argv[]){
         return 1;
     }
 
-    if(argc == 3) file_name = argv[3];
+    if(argc == 4) file_name = argv[3];
 
     printf("loading file %s with matrix size %d, block size %d\n", file_name, matrix_size, block_size);
 
@@ -90,29 +90,34 @@ int main(int argc, char* argv[]){
 
     auto t = clock();
     
-    Matrix::SolveBlock(A, b, x, matrix_size, block_size, temps);
+    int res = Matrix::SolveBlock(A, b, x, matrix_size, block_size, temps);
     
     t = clock()-t;
     
-    //at this point matrix A and vector b are wrong, but we can reinitialize them;
-    Matrix::InitMatrix(A, matrix_size, matrix_size, file_name);
-    Matrix::GetRHSVector(A, b, matrix_size);
-    
-	Matrix::MultiplyMatrices(A, x, Ax, matrix_size, matrix_size, 1);
-    
-	/*printf("Solution found: \n");
-	Matrix::PrintVector(x, matrix_size);
-	printf("Resulting Ax= vector: \n");
-	Matrix::PrintVector(Ax, matrix_size);	
-	printf("Intendent b vector: \n");
-	Matrix::PrintVector(b, matrix_size);*/
-    
-	double residual = Matrix::LengthVector(Matrix::SubstractMatrices(Ax, b, matrix_size, 1), matrix_size);
-	//double error = Matrix::LengthVector(Matrix::SubstractVectors(x, x1, matrix_size), matrix_size);
-    double error = Matrix::GetError(x, matrix_size);
+    if(res == 0){
+        //at this point matrix A and vector b are wrong, but we can reinitialize them;
+        Matrix::InitMatrix(A, matrix_size, matrix_size, file_name);
+        Matrix::GetRHSVector(A, b, matrix_size);
+        
+        Matrix::MultiplyMatrices(A, x, Ax, matrix_size, matrix_size, 1);
+        
+        /*printf("Solution found: \n");
+        Matrix::PrintVector(x, matrix_size);
+        printf("Resulting Ax= vector: \n");
+        Matrix::PrintVector(Ax, matrix_size);	
+        printf("Intendent b vector: \n");
+        Matrix::PrintVector(b, matrix_size);*/
+        
+        double residual = Matrix::LengthVector(Matrix::SubstractMatrices(Ax, b, matrix_size, 1), matrix_size);
+        //double error = Matrix::LengthVector(Matrix::SubstractVectors(x, x1, matrix_size), matrix_size);
+        double error = Matrix::GetError(x, matrix_size);
 
-	printf("Residual=%e\nerror=%e\n", residual, error);
-    printf("Elapsed time: %f\n", static_cast<float>(t)/CLOCKS_PER_SEC);
+        printf("Residual=%e\nerror=%e\n", residual, error);
+        printf("Elapsed time: %f\n", static_cast<float>(t)/CLOCKS_PER_SEC);
+    }
+    else{
+        printf("Matrix could not be inverted.\n");
+    }
     
 	if(A) delete[] A;
 	if(x) delete[] x;

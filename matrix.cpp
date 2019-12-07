@@ -100,7 +100,7 @@ void Matrix::PrintVector(const double* vector, const int size, const int* indexe
 }
 
 double Matrix::Length(const double* matrix, const int w, const int h){
-	double max, sum;
+	double max = 0.0, sum;
 	for(int y = 0; y < h; y++){
 		sum = 0;
 		int x = 0;
@@ -122,15 +122,9 @@ double Matrix::Length(const double* matrix, const int w, const int h){
 double Matrix::LengthVector(const double* vector, const int size){
 	double max = 0;
 	int x = 0;
-	//count four elements at once
-	for(; x < size-3; x+=4){
-		max += fabs(vector[x]);
-		max += fabs(vector[x+1]);
-		max += fabs(vector[x+2]);
-		max += fabs(vector[x+3]);
-	}
+    if(size > 0) max = fabs(vector[x]);
 	//add the last elements
-	for(; x < size; x++) max += fabs(vector[x]);
+	for(; x < size; x++) if(fabs(vector[x]) > max) max = fabs(vector[x]);
 
 	return max;
 }
@@ -587,7 +581,7 @@ double Matrix::GetError(double* vector, const int size){
 	return max;
 }
 
-void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int size, const int block_size, double* temps[17]){
+int Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int size, const int block_size, double* temps[17]){
     int step = size/block_size;
 	int end = size - step*block_size;
 
@@ -650,7 +644,7 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 		}
 		if(found_inversable == 0){
             printf("No matrices can be inverted on column %d\n", offset);
-            return;
+            return -1;
         }
 		
 		//swap the line to the top
@@ -780,7 +774,7 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 		EMatrix(block_ee_temp, end);
 		if(!GetInverseMatrix(block_ee, block_ee_temp, end, n, indexes_m)){
         	printf("End part of the matrix could not be inverted\n");
-            return;
+            return -1;
         }
 
         GetBlock(rhs, vector_e, 0, step*block_size, 
@@ -829,6 +823,8 @@ void Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int s
 	
 	delete[] indexes;
 	delete[] indexes_m;
+    
+    return 0;
 }
 
 

@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS=-c -Wall
+CFLAGS=-c -Wall -O3 -ffast-math -march=native
 LDFLAGS=
 SOURCES=main.cpp matrix.cpp fpu_init.cpp
 OBJECTS=$(SOURCES:.cpp=.o)

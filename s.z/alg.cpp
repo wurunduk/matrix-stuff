@@ -85,7 +85,7 @@ int sign_count(double* a, int n, double lambda)
 	for (int i = 1; i < n; ++i)
 	{
 		if (fabs(b) < epsilon)
-			b = 1e-10;
+			b = 1e-12;
 
 		b = a[i * n + i] - lambda - a[i * n + i - 1] * a[(i - 1) * n + i] / b;
 
@@ -105,7 +105,7 @@ int FindValues(double* a, double* values, int n, double eps)
 	double current_right;
 	int iterations = 0;
 
-	right_bound = Length(a, n, n) + 1e-10;
+	right_bound = Length(a, n, n) + 1e-12;
 	left_bound = -right_bound;
 
 	current_left = left_bound;

@@ -1,8 +1,47 @@
 #include "matrix.h"
 #include "matrix_exception.h"
+#include <sys/sysinfo.h>
 
 #include <cmath>
 #include <string.h>
+
+void Matrix::InitializeTempAddresses(addresses_array* adr, int* e){
+	e |= Matrix::CreateMatrix(&adr->inverse_block, block_size, block_size);//temp mm blocks
+    e |= Matrix::CreateMatrix(&adr->block, block_size, block_size);
+    e |= Matrix::CreateMatrix(&adr->block_temp, block_size, block_size);
+    e |= Matrix::CreateMatrix(&adr->block_temp_im, block_size, block_size);
+	e |= Matrix::CreateMatrix(&adr->block_temp_sub, block_size, block_size);
+    e |= Matrix::CreateMatrix(&adr->block_me, block_size, end);//temp me blocks
+    e |= Matrix::CreateMatrix(&adr->block_me_temp, block_size, end);
+    e |= Matrix::CreateMatrix(&adr->block_me_temp_im, block_size, end);
+    e |= Matrix::CreateMatrix(&adr->block_me_temp_sub, block_size, end);
+    e |= Matrix::CreateVector(&adr->vector_block, block_size);//temp b vector blocks
+    e |= Matrix::CreateVector(&adr->vector_block_temp, block_size);
+    e |= Matrix::CreateVector(&adr->vector_block_temp_im, block_size);
+	e |= Matrix::CreateMatrix(&adr->block_ee, end, end);//temp ee blocks
+	e |= Matrix::CreateMatrix(&adr->block_ee_temp, end, end);
+	e |= Matrix::CreateVector(&adr->vector_e, end);//temp vector end blocks
+	e |= Matrix::CreateVector(&adr->vector_e_temp, end);
+}
+
+void Matrix::DeleteTempAddresses(addresses_array* adr){
+	delete[] adr->inverse_block;
+	delete[] adr->block;
+	delete[] adr->block_temp;
+	delete[] adr->block_temp_im;
+	delete[] adr->block_temp_sub;
+	delete[] adr->block_me;
+	delete[] adr->block_me_temp;
+	delete[] adr->block_me_temp_im;
+	delete[] adr->block_me_temp_sub;
+	delete[] adr->vector_block;
+	delete[] adr->vector_block_temp;
+	delete[] adr->vector_block_temp_im;
+	delete[] adr->block_ee;
+	delete[] adr->block_ee_temp;
+	delete[] adr->vector_e;
+	delete[] adr->vector_e_temp;
+}
 
 void Matrix::FillMatrix(double* m, const int w, const int h){
 	for(int y = 0; y < h; y++)
@@ -582,29 +621,21 @@ double Matrix::GetError(double* vector, const int size){
 	return max;
 }
 
-int Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int size, const int block_size, double* temps[17]){
+void* Matrix::SolveBlock(void* in){
+	cpu_set_t cpu;
+
+	CPU_ZERO (&cpu);
+  	CPU_SET (get_nprocs () - ((arg*)in)->thread_id - 1, &cpu);
+  	pthread_setaffinity_np (pthread_self (), sizeof (cpu), &cpu);
+
+	arg* args = (arg*)in;
     int step = size/block_size;
 	int end = size - step*block_size;
 
+	addresses_array a;
+	InitializeTempAddresses(&a, &args->return_value);
+
 	int offset = 0;
-    
-    double* block = temps[0];
-    double* block_temp = temps[1];
-    double* block_temp_im = temps[2];
-    double* block_temp_sub = temps[3];
-    double* block_me = temps[4];
-    double* block_me_temp = temps[5];
-    double* block_me_temp_im = temps[6];
-    double* block_me_temp_sub = temps[7];
-	double* inverse_block = temps[8];
-    double* vector_block = temps[9];
-    double* vector_block_temp = temps[10];
-    double* vector_block_temp_im = temps[11];
-	double* block_ee = temps[12];
-	double* block_ee_temp = temps[13];
-	double* vector_e = temps[14];
-	double* vector_e_temp = temps[15];
-	
     
 	//create a permutation, so we dont take time to actually move elements in the matrix
 	auto indexes = new int[step];
@@ -613,9 +644,6 @@ int Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int si
 		indexes[i] = i;
 
 	double n = Length(matrix, size, size);
-    
-    //PrintClean(matrix, size, size);
-    //PrintClean(rhs, 1, size);
 
 	//when we complete a step of Gaussian algorithm, we should apply it again to the matrix of size m-1. 
 	//For that we will just think of the next element on the diagonal as the first one.
@@ -641,6 +669,7 @@ int Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int si
             printf("No matrices can be inverted on column %d\n", offset);
             delete[] indexes;
             delete[] indexes_m;
+			DeleteTempAddresses(&a);
             return -1;
         }
 		
@@ -773,6 +802,7 @@ int Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int si
         	printf("End part of the matrix could not be inverted\n");
             delete[] indexes;
             delete[] indexes_m;
+			DeleteTempAddresses(&a);
             return -1;
         }
 
@@ -822,6 +852,8 @@ int Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int si
 	
 	delete[] indexes;
 	delete[] indexes_m;
+
+	DeleteTempAddresses(&a);
     
     return 0;
 }

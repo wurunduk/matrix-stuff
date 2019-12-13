@@ -34,8 +34,6 @@ typedef struct{
 
 	int thread_count;
 	int thread_id;
-
-	addresses_array adr;
     
     double work_time;
     
@@ -43,6 +41,9 @@ typedef struct{
 } arg;
 
 namespace Matrix{
+	void InitializeTempAddresses(addresses_array* adr, int* e);
+	void DeleteTempAddresses(addresses_array* adr);
+
 	void FillMatrix(double* matrix, const int w, const int h);	
 	void GetAnswerVector(double* vector, const int size);
     void PrintClean(const double* matrix, const int w, const int h);
@@ -77,7 +78,7 @@ namespace Matrix{
     
     double GetError(double* vector, const int size);
 
-	int SolveBlock(double* matrix, double* rhs, double* answer, const int size, const int block_size, double* array[]);
+	void* SolveBlock(void* in);
 }
 
 #endif

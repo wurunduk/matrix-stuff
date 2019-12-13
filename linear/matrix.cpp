@@ -7,7 +7,7 @@
 void Matrix::FillMatrix(double* m, const int w, const int h){
 	for(int y = 0; y < h; y++)
 		for(int x = 0; x < w; x++)
-			m[y*w + x] = 1./(x+y+1);
+			m[y*w + x] = fabs(x-y);
 }
 
 void Matrix::GetAnswerVector(double* vector, const int size){

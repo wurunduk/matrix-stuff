@@ -29,45 +29,6 @@ void PrintUsage(const char* executable_name){
     printf("Usage: %s n m p for auto generated matrix of size n with block size m and p threads\n %s n m p 'file' to read matrix of size n from file with block size m and p threads\n", executable_name, executable_name);
 }
 
-void InitializeTempAddresses(addresses_array* adr, int* e){
-	
-	e |= Matrix::CreateMatrix(&adr->inverse_block, block_size, block_size);//temp mm blocks
-    e |= Matrix::CreateMatrix(&adr->block, block_size, block_size);
-    e |= Matrix::CreateMatrix(&adr->block_temp, block_size, block_size);
-    e |= Matrix::CreateMatrix(&adr->block_temp_im, block_size, block_size);
-	e |= Matrix::CreateMatrix(&adr->block_temp_sub, block_size, block_size);
-    e |= Matrix::CreateMatrix(&adr->block_me, block_size, end);//temp me blocks
-    e |= Matrix::CreateMatrix(&adr->block_me_temp, block_size, end);
-    e |= Matrix::CreateMatrix(&adr->block_me_temp_im, block_size, end);
-    e |= Matrix::CreateMatrix(&adr->block_me_temp_sub, block_size, end);
-    e |= Matrix::CreateVector(&adr->vector_block, block_size);//temp b vector blocks
-    e |= Matrix::CreateVector(&adr->vector_block_temp, block_size);
-    e |= Matrix::CreateVector(&adr->vector_block_temp_im, block_size);
-	e |= Matrix::CreateMatrix(&adr->block_ee, end, end);//temp ee blocks
-	e |= Matrix::CreateMatrix(&adr->block_ee_temp, end, end);
-	e |= Matrix::CreateVector(&adr->vector_e, end);//temp vector end blocks
-	e |= Matrix::CreateVector(&adr->vector_e_temp, end);
-}
-
-void DeleteTempAddresses(addresses_array* adr){
-	delete[] adr->inverse_block;
-	delete[] adr->block;
-	delete[] adr->block_temp;
-	delete[] adr->block_temp_im;
-	delete[] adr->block_temp_sub;
-	delete[] adr->block_me;
-	delete[] adr->block_me_temp;
-	delete[] adr->block_me_temp_im;
-	delete[] adr->block_me_temp_sub;
-	delete[] adr->vector_block;
-	delete[] adr->vector_block_temp;
-	delete[] adr->vector_block_temp_im;
-	delete[] adr->block_ee;
-	delete[] adr->block_ee_temp;
-	delete[] adr->vector_e;
-	delete[] adr->vector_e_temp;
-}
-
 int main(int argc, char* argv[]){
     set_fpu_exception_mask();
     char* file_name = nullptr;
@@ -103,7 +64,7 @@ int main(int argc, char* argv[]){
     args = new arg[thread_count];
 
 	for(int i = 0; i < thread_count; i++){
-		InitializeTempAddresses(&(args[i]->adr), &e);
+		//InitializeTempAddresses(&(args[i]->adr), &e);
 		args[i].matrix = A;
 		args[i].rhs = b;
 		args[i].x = x;

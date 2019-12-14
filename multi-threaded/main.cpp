@@ -31,6 +31,14 @@ void PrintUsage(const char* executable_name){
 
 int main(int argc, char* argv[]){
     set_fpu_exception_mask();
+    
+    cpu_set_t cpu;
+
+	CPU_ZERO (&cpu);
+  	CPU_SET (get_nprocs () - 1, &cpu);
+  	pthread_setaffinity_np (pthread_self (), sizeof (cpu), &cpu);
+    
+    
     char* file_name = nullptr;
     int matrix_size = 0;
     int block_size = 0;
@@ -50,16 +58,19 @@ int main(int argc, char* argv[]){
     printf("loading file %s with matrix size %d, block size %d, thread count %d\n", file_name, matrix_size, block_size, thread_count);
 
 	pthread_barrier_init(&barrier, 0, thread_count);
-
-	//size of end block of the matrix
-    int end = matrix_size - (matrix_size/block_size)*block_size;
 	
+    A = new double[matrix_size*matrix_size*2];
+    Ax = A + matrix_size*matrix_size;
+    x = new double[matrix_size*2];
+    b = x + matrix_size;
+    
+    
     //initialize used variables
-    e |= Matrix::CreateMatrix(&A, matrix_size, matrix_size, file_name);
-    e |= Matrix::CreateVector(&x, matrix_size);
-    e |= Matrix::CreateVector(&b, matrix_size);
+    //e |= Matrix::CreateMatrix(&A, matrix_size, matrix_size, file_name);
+    //e |= Matrix::CreateVector(&x, matrix_size);
+    //e |= Matrix::CreateVector(&b, matrix_size);
 
-    e |= Matrix::CreateVector(&Ax, matrix_size);
+    //e |= Matrix::CreateVector(&Ax, matrix_size);
 
     args = new arg[thread_count];
 
@@ -70,6 +81,7 @@ int main(int argc, char* argv[]){
 		args[i].x = x;
 		args[i].size = matrix_size;
 		args[i].block_size = block_size;
+        args[i].file_name = file_name;
 
 		args[i].return_value = 0;
 
@@ -86,23 +98,24 @@ int main(int argc, char* argv[]){
     {
         delete[] A;
         delete[] x;
-        delete[] b;
-        delete[] Ax;
-        
-        for(int i = 0; i < thread_count; i++)
-            DeleteTempAddresses(&(args[i]->adr));
 
 		delete[] args;
         return 2;
     }
-
-	Matrix::GetRHSVector(A, b, matrix_size);
-
-    auto t = clock();
     
-    int res = Matrix::SolveBlock(A, b, x, matrix_size, block_size, temps);
+    pthread_t meme;
     
-    t = clock()-t;
+    for(int i = 1; i < thread_count; i++){
+        if(pthread_create(&meme, nullptr, &Matrix::SolveBlock, args+i) != 0){
+            perror("Could not create a thread.\n");
+            abort();
+        }
+        //Matrix::SolveBlock(A, b, x, matrix_size, block_size, temps);
+    }
+    
+    Matrix::SolveBlock(args+0);
+    
+    pthread_barrier_destroy (&barrier);
     
     if(res == 0){
         //at this point matrix A and vector b are wrong, but we can reinitialize them;
@@ -129,11 +142,6 @@ int main(int argc, char* argv[]){
     
 	delete[] A;
 	delete[] x;
-	delete[] b;
-	delete[] Ax;
-    
-    for(int i = 0; i < thread_count; i++)
-    	DeleteTempAddresses(&(args[i]->adr));
 
 	delete[] args;
 

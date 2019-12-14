@@ -196,7 +196,7 @@ void print_matrix(double* a, int width, int height, int print_size = 10){
     int ph = height > print_size ? print_size : height;
     for(int y = 0; y < ph; y++){
         for(int x = 0; x < pw; x++)
-            printf("%lf ", a[x+y*width]);
+            printf("%.2lf ", a[x+y*width]);
     printf("\n");
     }
 }

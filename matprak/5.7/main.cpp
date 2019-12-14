@@ -36,7 +36,7 @@ void* thread_function(void* in);
 void fill_function(double* matrix, int n1, int n2);
 int read_file(double* matrix, int n1, int n2, char* file_name);
 void print_error(int id);double current_num = 0;
-void print_array(double* a, int width, int print_size = 10);
+void print_array(double* a, int width, int print_size = 30);
 
 void* thread_function(void* in){
     arg* args = (arg*)in;
@@ -145,7 +145,7 @@ void print_array(double* a, int width, int print_size){
     int pw = width > print_size ? print_size : width;
     
     for(int x = 0; x < pw; x++)
-        printf("%lf ", a[x]);
+        printf("%.2lf ", a[x]);
     printf("\n");
 }
 
@@ -235,7 +235,7 @@ int main(int argc, char* argv[]) {
         printf("Total time taken by thread %d: %lf\n", i, args[i].time);
     }
     
-    printf("Total time taken: %lf\n", get_full_time() - t);
+    printf("Total time taken: %lf\nRESULT: ", get_full_time() - t);
     
     print_array(a, array_size);
     

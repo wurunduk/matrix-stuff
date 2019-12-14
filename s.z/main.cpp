@@ -42,14 +42,16 @@ int main(int argc, char* argv[])
 	double eps;
 	int e = 0;			//MatrixException
 
-	if(!(argc==4 || argc==3) || !(matrix_size = atoi(argv[1])) || !(eps = atof(argv[2])) ){
+	if(!(argc==4 || argc==3) || !(matrix_size = atoi(argv[1]))){
         PrintUsage(argv[0]);        
         return 1;
     }
+    
+    eps = atof(argv[2]); 
 
 	if(argc == 4) file_name = argv[3];
 
-	printf("Loading file %s with matrix size %d, precision %lf\n", file_name, matrix_size, eps);
+	printf("Loading file %s with matrix size %d, precision %e\n", file_name, matrix_size, eps);
 
 	a = new double[matrix_size*matrix_size];
 	values = new double[matrix_size];
@@ -62,6 +64,9 @@ int main(int argc, char* argv[])
 		delete[] values;
 		return 1;
 	}
+	
+	double inv1 = .0;
+    double inv2 = .0;
 
 	auto t = clock();
 	int total_iterations = FindValues(a, values, matrix_size, eps);

@@ -5,60 +5,94 @@
 #include <cmath>
 #include <string.h>
 
-void Matrix::InitializeTempAddresses(addresses_array* adr, int* e){
-	e |= Matrix::CreateMatrix(&adr->inverse_block, block_size, block_size);//temp mm blocks
+void Matrix::InitializeTempAddresses(addresses_array* adr, int block_size, int end){
+    adr->inverse_block = new double[block_size*block_size*5];
+    adr->block = adr->inverse_block + block_size*block_size;
+    adr->block_temp = adr->block + block_size*block_size;
+    adr->block_temp_im = adr->block_temp + block_size*block_size;
+    adr->block_temp_sub = adr->block_temp_im + block_size*block_size;
+    
+    adr->block_me = new double[block_size*end*4];
+    adr->block_me_temp = adr->block_me + block_size*end;
+    adr->block_me_temp_im = adr->block_me_temp + block_size*end;
+    adr->block_me_temp_sub = adr->block_me_temp_im + block_size*end;
+    
+    adr->vector_block = new double[block_size*3];
+    adr->vector_block_temp = adr->vector_block + block_size;
+    adr->vector_block_temp_im = adr->vector_block_temp + block_size;
+    
+    adr->block_ee = new double[end*end*2];
+    adr->block_ee_temp = adr->block_ee + end*end;
+    
+    adr->vector_e = new double[end*2];
+    adr->vector_e_temp = adr->vector_e + end;
+    
+	/*e |= Matrix::CreateMatrix(&adr->inverse_block, block_size, block_size);//temp mm blocks
     e |= Matrix::CreateMatrix(&adr->block, block_size, block_size);
     e |= Matrix::CreateMatrix(&adr->block_temp, block_size, block_size);
     e |= Matrix::CreateMatrix(&adr->block_temp_im, block_size, block_size);
 	e |= Matrix::CreateMatrix(&adr->block_temp_sub, block_size, block_size);
+    
     e |= Matrix::CreateMatrix(&adr->block_me, block_size, end);//temp me blocks
     e |= Matrix::CreateMatrix(&adr->block_me_temp, block_size, end);
     e |= Matrix::CreateMatrix(&adr->block_me_temp_im, block_size, end);
     e |= Matrix::CreateMatrix(&adr->block_me_temp_sub, block_size, end);
+    
     e |= Matrix::CreateVector(&adr->vector_block, block_size);//temp b vector blocks
     e |= Matrix::CreateVector(&adr->vector_block_temp, block_size);
     e |= Matrix::CreateVector(&adr->vector_block_temp_im, block_size);
+    
 	e |= Matrix::CreateMatrix(&adr->block_ee, end, end);//temp ee blocks
 	e |= Matrix::CreateMatrix(&adr->block_ee_temp, end, end);
 	e |= Matrix::CreateVector(&adr->vector_e, end);//temp vector end blocks
-	e |= Matrix::CreateVector(&adr->vector_e_temp, end);
+	e |= Matrix::CreateVector(&adr->vector_e_temp, end);*/
 }
 
 void Matrix::DeleteTempAddresses(addresses_array* adr){
 	delete[] adr->inverse_block;
-	delete[] adr->block;
+	/*delete[] adr->block;
 	delete[] adr->block_temp;
 	delete[] adr->block_temp_im;
-	delete[] adr->block_temp_sub;
+	delete[] adr->block_temp_sub;*/
 	delete[] adr->block_me;
-	delete[] adr->block_me_temp;
-	delete[] adr->block_me_temp_im;
-	delete[] adr->block_me_temp_sub;
+	//delete[] adr->block_me_temp;
+	//delete[] adr->block_me_temp_im;
+	//delete[] adr->block_me_temp_sub;
 	delete[] adr->vector_block;
-	delete[] adr->vector_block_temp;
-	delete[] adr->vector_block_temp_im;
+	//delete[] adr->vector_block_temp;
+	//delete[] adr->vector_block_temp_im;
 	delete[] adr->block_ee;
-	delete[] adr->block_ee_temp;
+	//delete[] adr->block_ee_temp;
 	delete[] adr->vector_e;
-	delete[] adr->vector_e_temp;
+	//delete[] adr->vector_e_temp;
 }
 
-void Matrix::FillMatrix(double* m, const int w, const int h){
-	for(int y = 0; y < h; y++)
-		for(int x = 0; x < w; x++)
-			m[y*w + x] = fabs(x-y);
-}
-
-void Matrix::GetAnswerVector(double* vector, const int size){
-	int i = 0;
-	for(; i < size-3; i+=4){
-		vector[i] = 1;
-		vector[i+1] = 0;
-		vector[i+2] = 1;
-		vector[i+3] = 0;
-	}
-	for(; i < size; i++)
-		vector[i] = ((i+1)&1);
+MatrixException Matrix::AttachMatrices(arg* in){
+    int m = in->block_size;
+    int n = in->size;
+    int id = in->thread_id;
+    
+    for(int i = 0; (i + id)*m < n; i += in->thread_count){
+        if((i + id)*m + m < n){
+            memset(in->matrix + (i + id)*m*n, 0, m*n*sizeof(double));
+            memset(in->rhs + (i+id)*m, 0, m*sizeof(double));
+            memset(in->answer + (i+id)*m, 0, m*sizeof(double));
+        }
+        else{
+            memset(in->matrix + (n - (i + id)*m)*n, 0, (n - (i + id)*m)*n*sizeof(double));
+            memset(in->rhs + n - (i+id)*m, 0, (n - (i + id)*m)*sizeof(double));
+            memset(in->answer + n - (i+id)*m, 0, (n - (i + id)*m)*sizeof(double));
+        }
+    }
+    
+    pthread_barrier_wait(in->barrier);
+    
+    if(id == 0){
+        auto e = in->file_name ? ReadMatrix(in->matrix, n, n, in->file_name) : FillMatrix(in->matrix, n, n);
+        GetRHSVector(in->matrix, in->rhs, n);
+        return e;
+    }
+    else return NO_ERROR;
 }
 
 void Matrix::PrintClean(const double* matrix, const int w, const int h){
@@ -168,6 +202,18 @@ double Matrix::LengthVector(const double* vector, const int size){
 	return max;
 }
 
+void Matrix::GetAnswerVector(double* vector, const int size){
+	int i = 0;
+	for(; i < size-3; i+=4){
+		vector[i] = 1;
+		vector[i+1] = 0;
+		vector[i+2] = 1;
+		vector[i+3] = 0;
+	}
+	for(; i < size; i++)
+		vector[i] = ((i+1)&1);
+}
+
 void Matrix::GetRHSVector(const double* matrix, double* RHSVector, const int size){
 	for(int y = 0; y < size; y++){
 		RHSVector[y] = 0;
@@ -180,38 +226,6 @@ void Matrix::GetRHSVector(const double* matrix, double* RHSVector, const int siz
 		}
 		for(; x < size; x+=2)
 			RHSVector[y] += matrix[x + y*size];
-	}
-}
-
-void Matrix::GetBlock(const double* A, double* block, const int x, const int y, const int x1, const int y1, const int matrix_size){
-	int h = y1-y;
-	int w = x1-x;
-    for(int i = 0; i < h; i++){
-		int j = 0;
-        for(; j < w-4; j+=4){
-            block[j + i*w] = A[(y+i)*matrix_size + x + j];
-            block[j + i*w + 1] = A[(y+i)*matrix_size + x + j + 1];
-            block[j + i*w + 2] = A[(y+i)*matrix_size + x + j + 2];
-            block[j + i*w + 3] = A[(y+i)*matrix_size + x + j + 3];
-        }
-		for(; j < w; j++)
-			block[j + i*w] = A[(y+i)*matrix_size + x + j];
-    }
-}
-
-void Matrix::PutBlock(double* A, const double* block, const int x, const int y, const int x1, const int y1, const int matrix_size){
-    int h = y1-y;
-	int w = x1-x;
-    for(int i = 0; i < h; i++){
-		int j = 0;
-        for(; j < w-4; j+= 4){
-            A[(y+i)*matrix_size + x + j] = block[j + i*w];
-            A[(y+i)*matrix_size + x + j + 1] = block[j + 1 + i*w];
-            A[(y+i)*matrix_size + x + j + 2] = block[j + 2 + i*w];
-            A[(y+i)*matrix_size + x + j + 3] = block[j + 3 + i*w];
-        }
-		for(; j < w; j++)
-			A[(y+i)*matrix_size + x + j] = block[j + i*w];
 	}
 }
 
@@ -244,6 +258,14 @@ void Matrix::EMatrix(double* matrix, const int size){
 		matrix[x*size + x] = 1;
 }
 
+MatrixException Matrix::FillMatrix(double* m, const int w, const int h){
+	for(int y = 0; y < h; y++)
+		for(int x = 0; x < w; x++)
+			m[y*w + x] = fabs(x-y);
+        
+    return NO_ERROR;
+}
+
 MatrixException Matrix::ReadMatrix(double* matrix, const int w, const int h, const char* file_name){
     FILE* f = fopen(file_name, "r");
     if(!f) return CAN_NOT_OPEN;
@@ -258,39 +280,36 @@ MatrixException Matrix::ReadMatrix(double* matrix, const int w, const int h, con
     return NO_ERROR;
 }
 
-MatrixException Matrix::InitMatrix(double* matrix, const int w, const int h, const char* file_name){
-    if(file_name == nullptr) {
-        FillMatrix(matrix, w, h);
-        return NO_ERROR;
+void Matrix::GetBlock(const double* A, double* block, const int x, const int y, const int x1, const int y1, const int matrix_size){
+	int h = y1-y;
+	int w = x1-x;
+    for(int i = 0; i < h; i++){
+		int j = 0;
+        for(; j < w-4; j+=4){
+            block[j + i*w] = A[(y+i)*matrix_size + x + j];
+            block[j + i*w + 1] = A[(y+i)*matrix_size + x + j + 1];
+            block[j + i*w + 2] = A[(y+i)*matrix_size + x + j + 2];
+            block[j + i*w + 3] = A[(y+i)*matrix_size + x + j + 3];
+        }
+		for(; j < w; j++)
+			block[j + i*w] = A[(y+i)*matrix_size + x + j];
     }
-    else return ReadMatrix(matrix, w, h, file_name);
 }
 
-MatrixException Matrix::CreateVector(double** vector, const int size){
-    *vector = new double[size];
-    if(!*vector) return MatrixException::NOT_ENOUGH_MEMORY;
-    
-    NullMatrix(*vector, size);
-
-    return NO_ERROR;
-}
-
-MatrixException Matrix::CreateMatrix(double** matrix, const int w, const int h){
-    *matrix = new double[w*h];
-    if(!*matrix) return MatrixException::NOT_ENOUGH_MEMORY;
-    
-    NullMatrix(*matrix, w*h);
-    
-    return NO_ERROR;
-}
-
-MatrixException Matrix::CreateMatrix(double** matrix, const int w, const int h, const char* file_name){
-    //if no name was supplied, we want to initialize and generate the matrix
-    MatrixException res = CreateMatrix(matrix, w, h);
-	if(res == NO_ERROR){
-		return InitMatrix(*matrix, w, h, file_name);
+void Matrix::PutBlock(double* A, const double* block, const int x, const int y, const int x1, const int y1, const int matrix_size){
+    int h = y1-y;
+	int w = x1-x;
+    for(int i = 0; i < h; i++){
+		int j = 0;
+        for(; j < w-4; j+= 4){
+            A[(y+i)*matrix_size + x + j] = block[j + i*w];
+            A[(y+i)*matrix_size + x + j + 1] = block[j + 1 + i*w];
+            A[(y+i)*matrix_size + x + j + 2] = block[j + 2 + i*w];
+            A[(y+i)*matrix_size + x + j + 3] = block[j + 3 + i*w];
+        }
+		for(; j < w; j++)
+			A[(y+i)*matrix_size + x + j] = block[j + i*w];
 	}
-	else return res;
 }
 
 int Matrix::GetInverseMatrix(double* matrix, double* matrixReversed, int m, double norm, int* transposition_m){
@@ -633,7 +652,11 @@ void* Matrix::SolveBlock(void* in){
 	int end = size - step*block_size;
 
 	addresses_array a;
-	InitializeTempAddresses(&a, &args->return_value);
+	InitializeTempAddresses(&a, block_size, end);
+    
+    AttachMatrices(args);
+    
+    pthread_barrier_wait(args->barrier);
 
 	int offset = 0;
     

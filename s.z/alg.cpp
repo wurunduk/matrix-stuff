@@ -75,7 +75,7 @@ void TridiagonalRotation(double* a, int n)
 	}
 }
 
-int sign_count(double* a, int n, double lambda)
+int sign_count(const double* a, int n, double lambda)
 {
 	int signs = 0;
 
@@ -85,7 +85,7 @@ int sign_count(double* a, int n, double lambda)
 	for (int i = 1; i < n; ++i)
 	{
 		if (fabs(b) < epsilon)
-			b = 1e-12;
+			b = 1e-10;
 
 		b = a[i * n + i] - lambda - a[i * n + i - 1] * a[(i - 1) * n + i] / b;
 
@@ -98,24 +98,30 @@ int sign_count(double* a, int n, double lambda)
 
 int FindValues(double* a, double* values, int n, double eps)
 {
-	int count;
-	double left_bound;
-	double right_bound;
-	double current_left;
-	double current_right;
+	int count = 0;
 	int iterations = 0;
 
-	right_bound = Length(a, n, n) + 1e-12;
-	left_bound = -right_bound;
+    double norm = Length(a, n, n);
+    
+	double right_bound = norm + 1e-10;
+	double left_bound = -right_bound;
 
-	current_left = left_bound;
-	current_right = right_bound;
+	double current_left = left_bound;
+	double current_right = right_bound;
+    
+    printf("%lf to %lf\n", left_bound, right_bound);
 
+    PrintClean(a,n,n);
+    
 	//Transfrom matrix to tridiagonal form
 	TridiagonalRotation(a, n);
+    
+    PrintClean(a,n,n);
 
 	for (int i = 0; i < n;)
 	{
+        printf("%lf to1 %lf\n", current_left, current_right);
+
 		while (current_right - current_left > eps)
 		{
 			double d = (current_left + current_right)/2.0;
@@ -124,6 +130,8 @@ int FindValues(double* a, double* values, int n, double eps)
 			else
 				current_right = d;
 
+            printf("%lf to2 %lf\n", current_left, current_right);
+            
 			iterations++;
 		}
 

@@ -56,6 +56,12 @@ void PrintClean(const double* matrix, const int w, const int h){
 
 void PrintMatrix(const double* matrix, const int size, int print_size = 10){
 	int n = size;
+    
+    if(print_size >= size){
+        PrintClean(matrix, size, size);
+        return;
+    }
+    
     if(n > print_size) n = print_size;
 
     for(int y = 0; y < n-1; y++){
@@ -77,6 +83,12 @@ void PrintMatrix(const double* matrix, const int size, int print_size = 10){
 
 void PrintVector(const double* vector, const int size, int print_size = 10){
 	int n = size;
+    
+    if(print_size >= size){
+        PrintClean(vector, 1, size);
+        return;
+    }
+    
     if(n > print_size) n = print_size;
 
     for(int y = 0; y < n-1; y++){

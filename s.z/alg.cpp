@@ -109,19 +109,11 @@ int FindValues(double* a, double* values, int n, double eps)
 	double current_left = left_bound;
 	double current_right = right_bound;
     
-    printf("%lf to %lf\n", left_bound, right_bound);
-
-    PrintClean(a,n,n);
-    
 	//Transfrom matrix to tridiagonal form
 	TridiagonalRotation(a, n);
-    
-    PrintClean(a,n,n);
 
 	for (int i = 0; i < n;)
 	{
-        printf("%lf to1 %lf\n", current_left, current_right);
-
 		while (current_right - current_left > eps)
 		{
 			double d = (current_left + current_right)/2.0;
@@ -129,8 +121,6 @@ int FindValues(double* a, double* values, int n, double eps)
 				current_left = d;
 			else
 				current_right = d;
-
-            printf("%lf to2 %lf\n", current_left, current_right);
             
 			iterations++;
 		}

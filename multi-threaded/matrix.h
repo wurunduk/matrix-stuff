@@ -13,15 +13,21 @@ typedef struct{
     double* block_temp;
     double* block_temp_im;
     double* block_temp_sub;
+
+	double* temp_row;
+
     double* block_me;
     double* block_me_temp;
     double* block_me_temp_im;
     double* block_me_temp_sub;
+
     double* vector_block;
     double* vector_block_temp;
     double* vector_block_temp_im;
+
 	double* block_ee;
 	double* block_ee_temp;
+
 	double* vector_e;
 	double* vector_e_temp;
 } address_array;
@@ -34,8 +40,8 @@ typedef struct{
 	int size;
 	int block_size;
 
-	int largest_index;
-	double largest_norm;
+	int minimal_index;
+	double minimal_norm;
 
 	int return_value;
 
@@ -49,7 +55,7 @@ typedef struct{
 } arg;
 
 namespace Matrix{
-	void InitializeTempAddresses(address_array* adr, int block_size, int end);
+	void InitializeTempAddresses(address_array* adr, int size, int block_size, int end);
 	void DeleteTempAddresses(address_array* adr);
     
     MatrixException AttachMatrices(arg* in);

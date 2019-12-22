@@ -71,6 +71,21 @@ int main(int argc, char* argv[]){
     x = new double[matrix_size*2];
     b = x + matrix_size;
     
+
+
+
+
+
+
+
+	//chec kthreads < size
+
+
+
+
+
+
+
     
     //initialize used variables
     //e |= Matrix::CreateMatrix(&A, matrix_size, matrix_size, file_name);
@@ -90,8 +105,8 @@ int main(int argc, char* argv[]){
 		args[i].block_size = block_size;
         args[i].file_name = file_name;
 
-		args[i].largest_index = 0;
-		args[i].largest_norm = 0;
+		args[i].minimal_index = 0;
+		args[i].minimal_norm = 0;
 
 		args[i].return_value = 0;
 
@@ -150,10 +165,6 @@ int main(int argc, char* argv[]){
 		for(int i = 0; i < thread_count; i++){
         	printf ("Cpu time of thread %d: %.2lf, Time of thread %d: %.2lf\n", i, args[i].cpu_time, i, args[i].work_time);
         }
-    }
-    else{
-        //printf("Matrix could not be inverted.\n");
-		ReportError((MatrixException)e);
     }
     
 	delete[] A;

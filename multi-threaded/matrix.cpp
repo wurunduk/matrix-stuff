@@ -5,12 +5,14 @@
 #include <cmath>
 #include <string.h>
 
-void Matrix::InitializeTempAddresses(address_array* adr, int block_size, int end){
+void Matrix::InitializeTempAddresses(address_array* adr, int size, int block_size, int end){
     adr->inverse_block = new double[block_size*block_size*5];
     adr->block = adr->inverse_block + block_size*block_size;
     adr->block_temp = adr->block + block_size*block_size;
     adr->block_temp_im = adr->block_temp + block_size*block_size;
     adr->block_temp_sub = adr->block_temp_im + block_size*block_size;
+
+	adr->temp_row = new double[block_size*size];
     
     adr->block_me = new double[block_size*end*4];
     adr->block_me_temp = adr->block_me + block_size*end;
@@ -54,6 +56,7 @@ void Matrix::DeleteTempAddresses(address_array* adr){
 	delete[] adr->block_temp;
 	delete[] adr->block_temp_im;
 	delete[] adr->block_temp_sub;*/
+	delete[] adr->temp_row;
 	delete[] adr->block_me;
 	//delete[] adr->block_me_temp;
 	//delete[] adr->block_me_temp_im;
@@ -71,17 +74,21 @@ MatrixException Matrix::AttachMatrices(arg* in){
     int m = in->block_size;
     int n = in->size;
     int id = in->thread_id;
-    
+
+	int step = n/m;
+	int end = n - step*m;
+
+	if(id == 0){
+        memset(in->matrix + step*m*n, 0, end*n*sizeof(double));
+        memset(in->rhs + n - end, 0, end*sizeof(double));
+    	memset(in->answer + n - end, 0, end*sizeof(double));
+	}
+
     for(int i = 0; (i + id)*m < n; i += in->thread_count){
         if((i + id)*m + m < n){
             memset(in->matrix + (i + id)*m*n, 0, m*n*sizeof(double));
             memset(in->rhs + (i+id)*m, 0, m*sizeof(double));
             memset(in->answer + (i+id)*m, 0, m*sizeof(double));
-        }
-        else{
-            memset(in->matrix + (n - (i + id)*m)*n, 0, (n - (i + id)*m)*n*sizeof(double));
-            memset(in->rhs + n - (i+id)*m, 0, (n - (i + id)*m)*sizeof(double));
-            memset(in->answer + n - (i+id)*m, 0, (n - (i + id)*m)*sizeof(double));
         }
     }
     
@@ -653,19 +660,34 @@ void* Matrix::SolveBlock(void* in){
     int step = size/block_size;
 	int end = size - step*block_size;
 
+	int id = args->thread_id;
+	int p = args->thread_count;
+
 	double* rhs = args->rhs;
 	double* answer = args->answer;
 	double* matrix = args->matrix;
 
+	int index_start;
+
 	address_array a;
-	InitializeTempAddresses(&a, block_size, end);
+	InitializeTempAddresses(&a, size, block_size, end);
     
 	//attaches matrice rows to processor caches and reades the matrix from file\equation
-    AttachMatrices(args);
-    
+    int e = AttachMatrices(args);
+
+	args->return_value = e;
+
 	//no barrier in attach matricces, wait for first thread to read the matrix
     pthread_barrier_wait(args->barrier);
     
+	for(int i = 0; i < p; i++){
+		if((args + i - id)->return_value != 0){
+			//other thread had an error, terminate
+			DeleteTempAddresses(&a);
+            return nullptr;
+		}
+	}
+
 	//create a permutation, so we dont take time to actually move elements in the matrix
 	auto indexes = new int[step];
 	auto indexes_m = new int[size];
@@ -681,9 +703,12 @@ void* Matrix::SolveBlock(void* in){
 		double minimal_norm = 0.0;
 		int minimal_norm_index = offset;
         int found_inversable = 0;
-		for(int y = offset; y < step; y++){
-			GetBlock(matrix, a.block, offset*block_size, indexes[y]*block_size, 
-									offset*block_size + block_size, indexes[y]*block_size + block_size, size);
+
+		index_start = id < offset % p ? id + p - offset % p : id - offset % p;
+
+		for(int y = offset + index_start; y < step; y+= p){
+			GetBlock(matrix, a.block, offset*block_size, y*block_size, 
+									offset*block_size + block_size, y*block_size + block_size, size);
 			EMatrix(a.inverse_block, block_size);
 			if(GetInverseMatrix(a.block, a.inverse_block, block_size, n, indexes_m)){
                 found_inversable = 1;
@@ -696,98 +721,144 @@ void* Matrix::SolveBlock(void* in){
             }
 		}
 		if(found_inversable == 0){
-            printf("No matrices can be inverted on column %d\n", offset);
-            delete[] indexes;
+			args->return_value = 1;
+        }
+
+		args->minimal_norm = minimal_norm;
+		args->minimal_index = minimal_norm_index;
+
+		pthread_barrier_wait(args->barrier);
+
+		found_inversable = 0;
+		for(int i = 0; i < p; i++){
+			if((args + i - id)->return_value != 1){
+				if(found_inversable == 0){
+					minimal_norm = (args + i - id)->minimal_norm;
+					minimal_norm_index = (args + i - id)->minimal_index;
+					found_inversable = 1;
+				}
+
+				if((args + i - id)->minimal_norm < minimal_norm){
+					minimal_norm = (args + i - id)->minimal_norm;
+					minimal_norm_index = (args + i - id)->minimal_index;
+				}
+			}
+		}
+
+		if(found_inversable == 0){
+			args->return_value = UNINVERTABLE;
+			delete[] indexes;
             delete[] indexes_m;
 			DeleteTempAddresses(&a);
-			args->return_value = -1;
             return nullptr;
-        }
+		}
+
+		args->return_value = 0;
+
+		pthread_barrier_wait(args->barrier);
 		
-		//swap the line to the top
+		//save indexes to rearrange the answer in the end
 		int temp_index = indexes[offset];
 		indexes[offset] = indexes[minimal_norm_index];
 		indexes[minimal_norm_index] = temp_index;
-        
-		//get inverse block
-        GetBlock(matrix, a.block, offset*block_size, indexes[offset]*block_size, 
-								offset*block_size + block_size, indexes[offset]*block_size + block_size, size);
-        EMatrix(a.inverse_block, block_size);
-        //we know this matrix exists, no need to check it
-        GetInverseMatrix(a.block, a.inverse_block, block_size, n, indexes_m);
+
+		if(id == offset%p){
+			//physically move the rows 
+			memcpy (a.temp_row, matrix + offset * block_size * size, block_size * size * sizeof(double));
+			memcpy (matrix + offset * block_size * size, matrix + minimal_norm_index * block_size * size, block_size * size * sizeof(double));
+			memcpy (matrix + minimal_norm_index * block_size * size, a.temp_row, block_size * size * sizeof(double));
+		
+
+			//get inverse block
+		    GetBlock(matrix, a.block, offset*block_size, offset*block_size, 
+									offset*block_size + block_size, offset*block_size + block_size, size);
+		    EMatrix(a.inverse_block, block_size);
+		    //we know this matrix exists, no need to check it
+		    GetInverseMatrix(a.block, a.inverse_block, block_size, n, indexes_m);
 
 
-        //firstly normalize the rhs vector
-        GetBlock(rhs, a.vector_block, 0, indexes[offset]*block_size, 
-									1, indexes[offset]*block_size + block_size, 1);
-		MultiplyMatrices(a.inverse_block, a.vector_block, a.vector_block_temp, block_size, block_size, 1);
-        PutBlock(rhs, a.vector_block_temp, 0, indexes[offset]*block_size, 
-										 1, indexes[offset]*block_size + block_size, 1);		
+		    //firstly normalize the rhs vector
+		    GetBlock(rhs, a.vector_block, 0, offset*block_size, 
+										1, offset*block_size + block_size, 1);
+			MultiplyMatrices(a.inverse_block, a.vector_block, a.vector_block_temp, block_size, block_size, 1);
+		    PutBlock(rhs, a.vector_block_temp, 0, offset*block_size, 
+											 1, offset*block_size + block_size, 1);
 
+			for(int x = offset+1; x < step; x++){
+		        GetBlock(matrix, a.block_temp_sub, x*block_size, offset*block_size, 
+		                                x*block_size + block_size, offset*block_size + block_size, size);
+		        MultiplyMatrices(a.inverse_block, a.block_temp_sub, a.block_temp, block_size, block_size, block_size);
+		        PutBlock(matrix, a.block_temp, x*block_size, offset*block_size, 
+		                                x*block_size + block_size, offset*block_size + block_size, size);
+            }
 
-		//if unfull end block exists norm it too
-		if(end > 0){
-			GetBlock(matrix, a.block_me, step*block_size, indexes[offset]*block_size, 
-									   step*block_size + end, indexes[offset]*block_size + block_size, size);
-			MultiplyMatrices(a.inverse_block, a.block_me, a.block_me_temp, block_size, block_size, end);
-            PutBlock(matrix, a.block_me_temp, step*block_size, indexes[offset]*block_size, 
-											step*block_size + end, indexes[offset]*block_size + block_size, size);
+			//if unfull end block exists norm it too
+			if(end > 0){
+				GetBlock(matrix, a.block_me, step*block_size, offset*block_size, 
+										   step*block_size + end, offset*block_size + block_size, size);
+				MultiplyMatrices(a.inverse_block, a.block_me, a.block_me_temp, block_size, block_size, end);
+		        PutBlock(matrix, a.block_me_temp, step*block_size, offset*block_size, 
+												step*block_size + end, offset*block_size + block_size, size);
+			}
 		}
+
+		pthread_barrier_wait(args->barrier);
+
+		//copy the first row, rhs and end part
+		memcpy (a.temp_row, matrix + offset * block_size * size, block_size * size * sizeof(double));
+		GetBlock(rhs, a.vector_block_temp, 0, offset*block_size, 
+										1, offset*block_size + block_size, 1);
+
+		if(end > 0)
+			GetBlock(matrix, a.block_me_temp, step*block_size, offset*block_size, 
+										   step*block_size + end, offset*block_size + block_size, size);
 		
 		//everything normalized, block_me_temp has ready me normalized block of the top row
 		//vector_block_temp has the same for rhs vector
 
+		index_start = id < (offset+1) % p ? id + p - (offset+1) % p : id - (offset+1) % p;
+
         //substract top line of blocks from the all the bottom ones of block_size
-        for(int y = offset+1; y < step; y++){
+        for(int y = offset+1+index_start; y < step; y+= p){
             //first element of the current row   
-            GetBlock(matrix, a.block, offset*block_size, indexes[y]*block_size, 
-									offset*block_size + block_size, indexes[y]*block_size + block_size, size);
+            GetBlock(a.temp_row, a.block, offset*block_size, 0, 
+									offset*block_size + block_size, block_size, size);
 
 
 			MultiplyMatrices(a.block, a.vector_block_temp, a.vector_block_temp_im, block_size, block_size, 1);
 			//rhs block
-            GetBlock(rhs, a.vector_block, 0, indexes[y]*block_size, 
-										1, indexes[y]*block_size + block_size, 1);
+            GetBlock(rhs, a.vector_block, 0, y*block_size, 
+										1, y*block_size + block_size, 1);
 			SubstractMatrices(a.vector_block, a.vector_block_temp_im, 1, block_size);
-            PutBlock(rhs, a.vector_block, 0, indexes[y]*block_size, 
-										1, indexes[y]*block_size + block_size, 1);
+            PutBlock(rhs, a.vector_block, 0, y*block_size, 
+										1, y*block_size + block_size, 1);
 
             
             //end block if it exists
             if(end > 0){
 				MultiplyMatrices(a.block, a.block_me_temp, a.block_me_temp_im, block_size, block_size, end);
-                GetBlock(matrix, a.block_me, step*block_size, indexes[y]*block_size, 
-										   step*block_size + end, indexes[y]*block_size + block_size, size);
+                GetBlock(matrix, a.block_me, step*block_size, y*block_size, 
+										   step*block_size + end, y*block_size + block_size, size);
 				SubstractMatrices(a.block_me, a.block_me_temp_im, block_size, end);
-                PutBlock(matrix, a.block_me, step*block_size, indexes[y]*block_size, 
-										   step*block_size + end, indexes[y]*block_size + block_size, size);
+                PutBlock(matrix, a.block_me, step*block_size, y*block_size, 
+										   step*block_size + end, y*block_size + block_size, size);
             }
             
             //substract all other blocks
             for(int x = offset+1; x < step; x++){
-                if(y == offset+1){
-                    //normalize current block
-                    GetBlock(matrix, a.block_temp_sub, x*block_size, indexes[offset]*block_size, 
-                                            x*block_size + block_size, indexes[offset]*block_size + block_size, size);
-                    MultiplyMatrices(a.inverse_block, a.block_temp_sub, a.block_temp, block_size, block_size, block_size);
-                    PutBlock(matrix, a.block_temp, x*block_size, indexes[offset]*block_size, 
-                                            x*block_size + block_size, indexes[offset]*block_size + block_size, size);
-                }
-                else{
-                    GetBlock(matrix, a.block_temp, x*block_size, indexes[offset]*block_size, 
-                                            x*block_size + block_size, indexes[offset]*block_size + block_size, size);
-                }
+                GetBlock(a.temp_row, a.block_temp, x*block_size, 0, 
+                                            x*block_size + block_size, 0 + block_size, size);
 				MultiplyMatrices(a.block, a.block_temp, a.block_temp_im, block_size, block_size, block_size);
-                GetBlock(matrix, a.block_temp, x*block_size, indexes[y]*block_size, 
-											 x*block_size + block_size, indexes[y]*block_size + block_size, size);
+                GetBlock(matrix, a.block_temp, x*block_size, y*block_size, 
+											 x*block_size + block_size, y*block_size + block_size, size);
 				SubstractMatrices(a.block_temp, a.block_temp_im, block_size, block_size);
-                PutBlock(matrix, a.block_temp, x*block_size, indexes[y]*block_size, 
-											 x*block_size + block_size, indexes[y]*block_size + block_size, size);
+                PutBlock(matrix, a.block_temp, x*block_size, y*block_size, 
+											 x*block_size + block_size, y*block_size + block_size, size);
             }
         }
 
 		//if the last row exists, substract from them too
-		if(end > 0){
+		if(id == 0 && end > 0){
 			//first element of the last end row   
             GetBlock(matrix, a.block_me, offset*block_size, step*block_size, 
 									   offset*block_size + block_size, step*block_size + end, size);
@@ -811,8 +882,8 @@ void* Matrix::SolveBlock(void* in){
             //substract all blocks
             
             for(int x = offset+1; x < step ; x++){
-                GetBlock(matrix, a.block_temp, x*block_size, indexes[offset]*block_size, 
-											 x*block_size + block_size, indexes[offset]*block_size + block_size, size);
+                GetBlock(a.temp_row, a.block_temp, x*block_size, 0, 
+											 x*block_size + block_size, block_size, size);
 				MultiplyMatrices(a.block_me, a.block_temp, a.block_me_temp_im, end, block_size, block_size);
                 GetBlock(matrix, a.block_me_temp_sub, x*block_size, step*block_size, 
 											 		x*block_size + block_size, step*block_size + end, size);
@@ -821,9 +892,11 @@ void* Matrix::SolveBlock(void* in){
 											 		x*block_size + block_size, step*block_size + end, size);
             }
 		}
+
+		pthread_barrier_wait(args->barrier);
 	}
 
-	if(end > 0){
+	if(end > 0 && id == 0){
 		GetBlock(matrix, a.block_ee, step*block_size, step*block_size, 
 									   step*block_size + end, step*block_size + end, size);
 		EMatrix(a.block_ee_temp, end);
@@ -832,9 +905,10 @@ void* Matrix::SolveBlock(void* in){
             delete[] indexes;
             delete[] indexes_m;
 			DeleteTempAddresses(&a);
-			args->return_value = -1;
+			args->return_value = UNINVERTABLE;
             return nullptr;
         }
+		printf("countinf end stuff\n");
 
         GetBlock(rhs, a.vector_e, 0, step*block_size, 
                                 1, step*block_size + end, 1);
@@ -843,42 +917,54 @@ void* Matrix::SolveBlock(void* in){
                                      1, step*block_size + end, 1);
 
         for(int y = 0; y < step; y++){
-            GetBlock(matrix, a.block_me, step*block_size, indexes[y]*block_size, 
-									   step*block_size + end, indexes[y]*block_size + block_size, size);
+            GetBlock(matrix, a.block_me, step*block_size, y*block_size, 
+									   step*block_size + end, y*block_size + block_size, size);
             MultiplyMatrices(a.block_me, a.vector_e_temp, a.vector_block, block_size, end, 1);
-            GetBlock(rhs, a.vector_block_temp, 0, indexes[y]*block_size,
-                                            1, indexes[y]*block_size + block_size, 1);
+            GetBlock(rhs, a.vector_block_temp, 0, y*block_size,
+                                            1, y*block_size + block_size, 1);
             SubstractMatrices(a.vector_block_temp, a.vector_block, 1, block_size);
-            PutBlock(rhs, a.vector_block_temp, 0, indexes[y]*block_size,
-                                            1, indexes[y]*block_size + block_size, 1);
+            PutBlock(rhs, a.vector_block_temp, 0, y*block_size,
+                                            1, y*block_size + block_size, 1);
         }
     } 
 
+	pthread_barrier_wait(args->barrier);
+
+	if((args - id)->return_value == UNINVERTABLE){
+		delete[] indexes;
+		delete[] indexes_m;
+		DeleteTempAddresses(&a);
+		args->return_value = 0;
+		return nullptr;
+	}
+
 	//backwards step
 	for (int x = step-1; x > 0; x--){
-     	GetBlock(rhs, a.vector_block, 0, indexes[x] * block_size, 
-								    1, indexes[x] * block_size + block_size, 1);
-      	for (int y = 0; y < x; y++){
-          	GetBlock (matrix, a.block_temp, x * block_size, indexes[y] * block_size, 
-										x * block_size + block_size, indexes[y] * block_size + block_size, size);
+     	GetBlock(rhs, a.vector_block, 0, x * block_size, 
+								    1, x * block_size + block_size, 1);
+      	for (int y = id; y < x; y+=p){
+          	GetBlock (matrix, a.block_temp, x * block_size, y * block_size, 
+										x * block_size + block_size, y * block_size + block_size, size);
 			MultiplyMatrices(a.block_temp, a.vector_block, a.vector_block_temp, block_size, block_size, 1);
-          	GetBlock (rhs, a.vector_block_temp_im, 0, indexes[y] * block_size, 
-										 1, indexes[y] * block_size + block_size, 1);
+          	GetBlock (rhs, a.vector_block_temp_im, 0, y * block_size, 
+										 1, y * block_size + block_size, 1);
 			SubstractMatrices(a.vector_block_temp_im, a.vector_block_temp, 1, block_size);
-          	PutBlock (rhs, a.vector_block_temp_im, 0, indexes[y] * block_size, 
-										 1, indexes[y] * block_size + block_size, 1);
+          	PutBlock (rhs, a.vector_block_temp_im, 0, y * block_size, 
+										 1, y * block_size + block_size, 1);
         }
+		pthread_barrier_wait(args->barrier);
     }
 
-		
-	//swap the answer vector back
-	for(int y = 0; y < size; y++){
-        if(y < step*block_size)
-            answer[y] = rhs[indexes[y/block_size]*block_size + y%block_size];
-        else
-            answer[y] = rhs[y];
-    }
-	
+	if(id == 0){
+		//swap the answer vector back
+		for(int y = 0; y < size; y++){
+		    if(y < step*block_size)
+		        answer[y] = rhs[indexes[y/block_size]*block_size + y%block_size];
+		    else
+		        answer[y] = rhs[y];
+		}
+	}	
+
 	args->work_time = get_full_time() - args->work_time;
 	args->cpu_time = get_cpu_time() - args->cpu_time;	
 

@@ -83,8 +83,6 @@ int main(int argc, char* argv[]){
 
     args = new arg[thread_count];
 
-	printf("args p %p size %d\n", (void*)args, sizeof(arg));
-
 	for(int i = 0; i < thread_count; i++){
 		//InitializeTempAddresses(&(args[i]->adr), &e);
 		args[i].matrix = A;

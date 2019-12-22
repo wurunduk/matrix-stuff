@@ -821,8 +821,8 @@ void* Matrix::SolveBlock(void* in){
         //substract top line of blocks from the all the bottom ones of block_size
         for(int y = offset+1+index_start; y < step; y+= p){
             //first element of the current row   
-            GetBlock(a.temp_row, a.block, offset*block_size, 0, 
-									offset*block_size + block_size, block_size, size);
+            GetBlock(matrix, a.block, offset*block_size, indexes[y]*block_size, 
+									offset*block_size + block_size, indexes[y]*block_size + block_size, size);
 
 
 			MultiplyMatrices(a.block, a.vector_block_temp, a.vector_block_temp_im, block_size, block_size, 1);
@@ -843,7 +843,7 @@ void* Matrix::SolveBlock(void* in){
                 PutBlock(matrix, a.block_me, step*block_size, y*block_size, 
 										   step*block_size + end, y*block_size + block_size, size);
             }
-            
+
             //substract all other blocks
             for(int x = offset+1; x < step; x++){
                 GetBlock(a.temp_row, a.block_temp, x*block_size, 0, 
@@ -908,7 +908,6 @@ void* Matrix::SolveBlock(void* in){
 			args->return_value = UNINVERTABLE;
             return nullptr;
         }
-		printf("countinf end stuff\n");
 
         GetBlock(rhs, a.vector_e, 0, step*block_size, 
                                 1, step*block_size + end, 1);

@@ -671,6 +671,16 @@ int Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int si
         PutBlock(rhs, vector_block_temp, 0, indexes[offset]*block_size, 
 										 1, indexes[offset]*block_size + block_size, 1);		
 
+		for(int x = offset+1; x < step ; x++){
+                    //normalize current block
+                    GetBlock(matrix, block_temp_sub, x*block_size, indexes[offset]*block_size, 
+                                            x*block_size + block_size, indexes[offset]*block_size + block_size, size);
+                    MultiplyMatrices(inverse_block, block_temp_sub, block_temp, block_size, block_size, block_size);
+                    PutBlock(matrix, block_temp, x*block_size, indexes[offset]*block_size, 
+                                            x*block_size + block_size, indexes[offset]*block_size + block_size, size);
+                }
+               
+	
 
 		//if unfull end block exists norm it too
 		if(end > 0){
@@ -680,6 +690,7 @@ int Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int si
             PutBlock(matrix, block_me_temp, step*block_size, indexes[offset]*block_size, 
 											step*block_size + end, indexes[offset]*block_size + block_size, size);
 		}
+
 		
 		//everything normalized, block_me_temp has ready me normalized block of the top row
 		//vector_block_temp has the same for rhs vector
@@ -712,18 +723,10 @@ int Matrix::SolveBlock(double* matrix, double* rhs, double* answer, const int si
             
             //substract all other blocks
             for(int x = offset+1; x < step; x++){
-                if(y == offset+1){
-                    //normalize current block
-                    GetBlock(matrix, block_temp_sub, x*block_size, indexes[offset]*block_size, 
-                                            x*block_size + block_size, indexes[offset]*block_size + block_size, size);
-                    MultiplyMatrices(inverse_block, block_temp_sub, block_temp, block_size, block_size, block_size);
-                    PutBlock(matrix, block_temp, x*block_size, indexes[offset]*block_size, 
-                                            x*block_size + block_size, indexes[offset]*block_size + block_size, size);
-                }
-                else{
+                
                     GetBlock(matrix, block_temp, x*block_size, indexes[offset]*block_size, 
                                             x*block_size + block_size, indexes[offset]*block_size + block_size, size);
-                }
+                
 				MultiplyMatrices(block, block_temp, block_temp_im, block_size, block_size, block_size);
                 GetBlock(matrix, block_temp, x*block_size, indexes[y]*block_size, 
 											 x*block_size + block_size, indexes[y]*block_size + block_size, size);

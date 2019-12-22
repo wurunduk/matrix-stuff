@@ -64,28 +64,14 @@ int main(int argc, char* argv[]){
 
     printf("loading file %s with matrix size %d, block size %d, thread count %d\n", file_name, matrix_size, block_size, thread_count);
 
+	if(thread_count > matrix_size) thread_count = matrix_size;
+
 	pthread_barrier_init(&barrier, 0, thread_count);
 	
     A = new double[matrix_size*matrix_size*2];
     Ax = A + matrix_size*matrix_size;
     x = new double[matrix_size*2];
     b = x + matrix_size;
-    
-
-
-
-
-
-
-
-	//chec kthreads < size
-
-
-
-
-
-
-
     
     //initialize used variables
     //e |= Matrix::CreateMatrix(&A, matrix_size, matrix_size, file_name);
@@ -160,7 +146,7 @@ int main(int argc, char* argv[]){
         double residual = Matrix::LengthVector(Matrix::SubstractMatrices(Ax, b, matrix_size, 1), matrix_size);
         double error = Matrix::GetError(x, matrix_size);
 
-        printf("Residual=%e Error=%e n=%d m=%d k=%d\n", residual, error, matrix_size, block_size, thread_count);
+        printf("Residual=%e Error=%e Time=%.2lf n=%d m=%d k=%d\n", residual, error, args[0].work_time, matrix_size, block_size, thread_count);
 
 		for(int i = 0; i < thread_count; i++){
         	printf ("Cpu time of thread %d: %.2lf, Time of thread %d: %.2lf\n", i, args[i].cpu_time, i, args[i].work_time);

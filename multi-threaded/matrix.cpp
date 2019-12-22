@@ -755,9 +755,9 @@ void* Matrix::SolveBlock(void* in){
             return nullptr;
 		}
 
-		args->return_value = 0;
-
 		pthread_barrier_wait(args->barrier);
+
+		args->return_value = 0;
 		
 		//save indexes to rearrange the answer in the end
 		int temp_index = indexes[offset];
@@ -769,7 +769,10 @@ void* Matrix::SolveBlock(void* in){
 			memcpy (a.temp_row, matrix + offset * block_size * size, block_size * size * sizeof(double));
 			memcpy (matrix + offset * block_size * size, matrix + minimal_norm_index * block_size * size, block_size * size * sizeof(double));
 			memcpy (matrix + minimal_norm_index * block_size * size, a.temp_row, block_size * size * sizeof(double));
-		
+
+			memcpy (a.vector_block, rhs + offset * block_size, block_size * sizeof(double));
+			memcpy (rhs + offset * block_size, rhs + minimal_norm_index * block_size, block_size * sizeof(double));
+			memcpy (rhs + minimal_norm_index * block_size, a.vector_block, block_size * sizeof(double));
 
 			//get inverse block
 		    GetBlock(matrix, a.block, offset*block_size, offset*block_size, 
@@ -777,8 +780,6 @@ void* Matrix::SolveBlock(void* in){
 		    EMatrix(a.inverse_block, block_size);
 		    //we know this matrix exists, no need to check it
 		    GetInverseMatrix(a.block, a.inverse_block, block_size, n, indexes_m);
-
-
 		    //firstly normalize the rhs vector
 		    GetBlock(rhs, a.vector_block, 0, offset*block_size, 
 										1, offset*block_size + block_size, 1);
@@ -823,9 +824,8 @@ void* Matrix::SolveBlock(void* in){
         //substract top line of blocks from the all the bottom ones of block_size
         for(int y = offset+1+index_start; y < step; y+= p){
             //first element of the current row   
-            GetBlock(matrix, a.block, offset*block_size, indexes[y]*block_size, 
-									offset*block_size + block_size, indexes[y]*block_size + block_size, size);
-
+            GetBlock(matrix, a.block, offset*block_size, y*block_size, 
+									offset*block_size + block_size, y*block_size + block_size, size);
 
 			MultiplyMatrices(a.block, a.vector_block_temp, a.vector_block_temp_im, block_size, block_size, 1);
 			//rhs block
@@ -834,7 +834,6 @@ void* Matrix::SolveBlock(void* in){
 			SubstractMatrices(a.vector_block, a.vector_block_temp_im, 1, block_size);
             PutBlock(rhs, a.vector_block, 0, y*block_size, 
 										1, y*block_size + block_size, 1);
-
             
             //end block if it exists
             if(end > 0){
@@ -958,12 +957,9 @@ void* Matrix::SolveBlock(void* in){
     }
 
 	if(id == 0){
-		//swap the answer vector back
+		//fill the answer
 		for(int y = 0; y < size; y++){
-		    if(y < step*block_size)
-		        answer[y] = rhs[indexes[y/block_size]*block_size + y%block_size];
-		    else
-		        answer[y] = rhs[y];
+		    answer[y] = rhs[y];
 		}
 	}	
 

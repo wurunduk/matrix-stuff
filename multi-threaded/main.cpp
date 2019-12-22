@@ -3,6 +3,10 @@
 #include <ctime>
 #include <iostream>
 #include <pthread.h>
+#include <sys/sysinfo.h>
+
+#include <cmath>
+#include <string.h>
 
 void set_fpu_exception_mask (void);
 
@@ -11,7 +15,7 @@ static void ReportError(MatrixException ex){
 		case NO_ERROR:
 		return;
 		case UNKNOWN_ERROR:
-		printf("unknown error happened while working with matrix, error code %d\n", static_cast<int>(ex));
+		printf("Unknown error happened while working with matrix, error code %d\n", static_cast<int>(ex));
 		return;
 		case NOT_ENOUGH_MEMORY:
 		printf("Could not allocate enough memory for the matrix.\n");
@@ -21,6 +25,9 @@ static void ReportError(MatrixException ex){
 		return;
 		case FILE_CORRUPT:
 		printf("Matrix file did not have enough numbers to fill the given array.\n");
+		return;
+		case UNINVERTABLE:
+		printf("Matrix could not be inverted.\n");
 		return;
 	}
 }
@@ -78,30 +85,24 @@ int main(int argc, char* argv[]){
 		//InitializeTempAddresses(&(args[i]->adr), &e);
 		args[i].matrix = A;
 		args[i].rhs = b;
-		args[i].x = x;
+		args[i].answer = x;
 		args[i].size = matrix_size;
 		args[i].block_size = block_size;
         args[i].file_name = file_name;
 
+		args[i].largest_index = 0;
+		args[i].largest_norm = 0;
+
 		args[i].return_value = 0;
 
 		args[i].thread_count = thread_count;
-		args[i].thread_id = id;
-		args[i].work_time = 0;
+		args[i].thread_id = i;
+		args[i].work_time = .0;
+		args[i].cpu_time = .0;
 		args[i].matrix = A;
 
 		args[i].barrier = &barrier;
 	}
-    
-    ReportError((MatrixException)e);
-    if(e != NO_ERROR)
-    {
-        delete[] A;
-        delete[] x;
-
-		delete[] args;
-        return 2;
-    }
     
     pthread_t meme;
     
@@ -114,12 +115,22 @@ int main(int argc, char* argv[]){
     }
     
     Matrix::SolveBlock(args+0);
+
+	//get any errors
+	for(int i = 0; i < thread_count; i++){
+		e |= args[i].return_value;
+		if(args[i].return_value != 0){
+			printf("Thread %d error:\n\t", i);
+			ReportError((MatrixException)args[i].return_value);
+		}
+	}
     
-    pthread_barrier_destroy (&barrier);
-    
-    if(res == 0){
+    if(e == 0){
         //at this point matrix A and vector b are wrong, but we can reinitialize them;
-        Matrix::InitMatrix(A, matrix_size, matrix_size, file_name);
+        if(file_name) 
+			Matrix::ReadMatrix(A, matrix_size, matrix_size, file_name);
+		else
+			Matrix::FillMatrix(A, matrix_size, matrix_size);
         Matrix::GetRHSVector(A, b, matrix_size);
         
         Matrix::MultiplyMatrices(A, x, Ax, matrix_size, matrix_size, 1);
@@ -134,10 +145,15 @@ int main(int argc, char* argv[]){
         double residual = Matrix::LengthVector(Matrix::SubstractMatrices(Ax, b, matrix_size, 1), matrix_size);
         double error = Matrix::GetError(x, matrix_size);
 
-        printf("Residual=%e Error=%e n=%d m=%d k=%d elapsed=%.2f\n", residual, error, matrix_size, block_size, thread_count, static_cast<float>(t)/CLOCKS_PER_SEC);
+        printf("Residual=%e Error=%e n=%d m=%d k=%d\n", residual, error, matrix_size, block_size, thread_count);
+
+		for(int i = 0; i < thread_count; i++){
+        	printf ("Cpu time of thread %d: %.2lf, Time of thread %d: %.2lf\n", i, args[i].cpu_time, i, args[i].work_time);
+        }
     }
     else{
-        printf("Matrix could not be inverted.\n");
+        //printf("Matrix could not be inverted.\n");
+		ReportError((MatrixException)e);
     }
     
 	delete[] A;
@@ -145,7 +161,7 @@ int main(int argc, char* argv[]){
 
 	delete[] args;
 
-	pthread_barrier_destroy(&barrier);
+	pthread_barrier_destroy (&barrier);
     
     return 0;
 }

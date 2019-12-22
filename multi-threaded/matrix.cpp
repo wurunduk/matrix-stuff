@@ -5,7 +5,7 @@
 #include <cmath>
 #include <string.h>
 
-void Matrix::InitializeTempAddresses(addresses_array* adr, int block_size, int end){
+void Matrix::InitializeTempAddresses(address_array* adr, int block_size, int end){
     adr->inverse_block = new double[block_size*block_size*5];
     adr->block = adr->inverse_block + block_size*block_size;
     adr->block_temp = adr->block + block_size*block_size;
@@ -48,7 +48,7 @@ void Matrix::InitializeTempAddresses(addresses_array* adr, int block_size, int e
 	e |= Matrix::CreateVector(&adr->vector_e_temp, end);*/
 }
 
-void Matrix::DeleteTempAddresses(addresses_array* adr){
+void Matrix::DeleteTempAddresses(address_array* adr){
 	delete[] adr->inverse_block;
 	/*delete[] adr->block;
 	delete[] adr->block_temp;
@@ -648,17 +648,23 @@ void* Matrix::SolveBlock(void* in){
   	pthread_setaffinity_np (pthread_self (), sizeof (cpu), &cpu);
 
 	arg* args = (arg*)in;
+	int size = args->size;
+	int block_size = args->block_size;
     int step = size/block_size;
 	int end = size - step*block_size;
 
-	addresses_array a;
+	double* rhs = args->rhs;
+	double* answer = args->answer;
+	double* matrix = args->matrix;
+
+	address_array a;
 	InitializeTempAddresses(&a, block_size, end);
     
+	//attaches matrice rows to processor caches and reades the matrix from file\equation
     AttachMatrices(args);
     
+	//no barrier in attach matricces, wait for first thread to read the matrix
     pthread_barrier_wait(args->barrier);
-
-	int offset = 0;
     
 	//create a permutation, so we dont take time to actually move elements in the matrix
 	auto indexes = new int[step];
@@ -666,21 +672,22 @@ void* Matrix::SolveBlock(void* in){
 	for(int i = 0; i < step; i++)
 		indexes[i] = i;
 
+	args->work_time = get_full_time();
+	args->cpu_time = get_cpu_time();
+
 	double n = Length(matrix, size, size);
 
-	//when we complete a step of Gaussian algorithm, we should apply it again to the matrix of size m-1. 
-	//For that we will just think of the next element on the diagonal as the first one.
-	while(offset != step){
+	for(int offset = 0; offset < step; offset++){
 		double minimal_norm = 0.0;
 		int minimal_norm_index = offset;
         int found_inversable = 0;
 		for(int y = offset; y < step; y++){
-			GetBlock(matrix, block, offset*block_size, indexes[y]*block_size, 
+			GetBlock(matrix, a.block, offset*block_size, indexes[y]*block_size, 
 									offset*block_size + block_size, indexes[y]*block_size + block_size, size);
-			EMatrix(inverse_block, block_size);
-			if(GetInverseMatrix(block, inverse_block, block_size, n, indexes_m)){
+			EMatrix(a.inverse_block, block_size);
+			if(GetInverseMatrix(a.block, a.inverse_block, block_size, n, indexes_m)){
                 found_inversable = 1;
-                double k = Length(inverse_block, block_size, block_size);
+                double k = Length(a.inverse_block, block_size, block_size);
                 if(y == offset) minimal_norm = k;
                 if(minimal_norm > k){
                     minimal_norm = k;
@@ -693,7 +700,8 @@ void* Matrix::SolveBlock(void* in){
             delete[] indexes;
             delete[] indexes_m;
 			DeleteTempAddresses(&a);
-            return -1;
+			args->return_value = -1;
+            return nullptr;
         }
 		
 		//swap the line to the top
@@ -702,27 +710,27 @@ void* Matrix::SolveBlock(void* in){
 		indexes[minimal_norm_index] = temp_index;
         
 		//get inverse block
-        GetBlock(matrix, block, offset*block_size, indexes[offset]*block_size, 
+        GetBlock(matrix, a.block, offset*block_size, indexes[offset]*block_size, 
 								offset*block_size + block_size, indexes[offset]*block_size + block_size, size);
-        EMatrix(inverse_block, block_size);
+        EMatrix(a.inverse_block, block_size);
         //we know this matrix exists, no need to check it
-        GetInverseMatrix(block, inverse_block, block_size, n, indexes_m);
+        GetInverseMatrix(a.block, a.inverse_block, block_size, n, indexes_m);
 
 
         //firstly normalize the rhs vector
-        GetBlock(rhs, vector_block, 0, indexes[offset]*block_size, 
+        GetBlock(rhs, a.vector_block, 0, indexes[offset]*block_size, 
 									1, indexes[offset]*block_size + block_size, 1);
-		MultiplyMatrices(inverse_block, vector_block, vector_block_temp, block_size, block_size, 1);
-        PutBlock(rhs, vector_block_temp, 0, indexes[offset]*block_size, 
+		MultiplyMatrices(a.inverse_block, a.vector_block, a.vector_block_temp, block_size, block_size, 1);
+        PutBlock(rhs, a.vector_block_temp, 0, indexes[offset]*block_size, 
 										 1, indexes[offset]*block_size + block_size, 1);		
 
 
 		//if unfull end block exists norm it too
 		if(end > 0){
-			GetBlock(matrix, block_me, step*block_size, indexes[offset]*block_size, 
+			GetBlock(matrix, a.block_me, step*block_size, indexes[offset]*block_size, 
 									   step*block_size + end, indexes[offset]*block_size + block_size, size);
-			MultiplyMatrices(inverse_block, block_me, block_me_temp, block_size, block_size, end);
-            PutBlock(matrix, block_me_temp, step*block_size, indexes[offset]*block_size, 
+			MultiplyMatrices(a.inverse_block, a.block_me, a.block_me_temp, block_size, block_size, end);
+            PutBlock(matrix, a.block_me_temp, step*block_size, indexes[offset]*block_size, 
 											step*block_size + end, indexes[offset]*block_size + block_size, size);
 		}
 		
@@ -732,26 +740,26 @@ void* Matrix::SolveBlock(void* in){
         //substract top line of blocks from the all the bottom ones of block_size
         for(int y = offset+1; y < step; y++){
             //first element of the current row   
-            GetBlock(matrix, block, offset*block_size, indexes[y]*block_size, 
+            GetBlock(matrix, a.block, offset*block_size, indexes[y]*block_size, 
 									offset*block_size + block_size, indexes[y]*block_size + block_size, size);
 
 
-			MultiplyMatrices(block, vector_block_temp, vector_block_temp_im, block_size, block_size, 1);
+			MultiplyMatrices(a.block, a.vector_block_temp, a.vector_block_temp_im, block_size, block_size, 1);
 			//rhs block
-            GetBlock(rhs, vector_block, 0, indexes[y]*block_size, 
+            GetBlock(rhs, a.vector_block, 0, indexes[y]*block_size, 
 										1, indexes[y]*block_size + block_size, 1);
-			SubstractMatrices(vector_block, vector_block_temp_im, 1, block_size);
-            PutBlock(rhs, vector_block, 0, indexes[y]*block_size, 
+			SubstractMatrices(a.vector_block, a.vector_block_temp_im, 1, block_size);
+            PutBlock(rhs, a.vector_block, 0, indexes[y]*block_size, 
 										1, indexes[y]*block_size + block_size, 1);
 
             
             //end block if it exists
             if(end > 0){
-				MultiplyMatrices(block, block_me_temp, block_me_temp_im, block_size, block_size, end);
-                GetBlock(matrix, block_me, step*block_size, indexes[y]*block_size, 
+				MultiplyMatrices(a.block, a.block_me_temp, a.block_me_temp_im, block_size, block_size, end);
+                GetBlock(matrix, a.block_me, step*block_size, indexes[y]*block_size, 
 										   step*block_size + end, indexes[y]*block_size + block_size, size);
-				SubstractMatrices(block_me, block_me_temp_im, block_size, end);
-                PutBlock(matrix, block_me, step*block_size, indexes[y]*block_size, 
+				SubstractMatrices(a.block_me, a.block_me_temp_im, block_size, end);
+                PutBlock(matrix, a.block_me, step*block_size, indexes[y]*block_size, 
 										   step*block_size + end, indexes[y]*block_size + block_size, size);
             }
             
@@ -759,21 +767,21 @@ void* Matrix::SolveBlock(void* in){
             for(int x = offset+1; x < step; x++){
                 if(y == offset+1){
                     //normalize current block
-                    GetBlock(matrix, block_temp_sub, x*block_size, indexes[offset]*block_size, 
+                    GetBlock(matrix, a.block_temp_sub, x*block_size, indexes[offset]*block_size, 
                                             x*block_size + block_size, indexes[offset]*block_size + block_size, size);
-                    MultiplyMatrices(inverse_block, block_temp_sub, block_temp, block_size, block_size, block_size);
-                    PutBlock(matrix, block_temp, x*block_size, indexes[offset]*block_size, 
+                    MultiplyMatrices(a.inverse_block, a.block_temp_sub, a.block_temp, block_size, block_size, block_size);
+                    PutBlock(matrix, a.block_temp, x*block_size, indexes[offset]*block_size, 
                                             x*block_size + block_size, indexes[offset]*block_size + block_size, size);
                 }
                 else{
-                    GetBlock(matrix, block_temp, x*block_size, indexes[offset]*block_size, 
+                    GetBlock(matrix, a.block_temp, x*block_size, indexes[offset]*block_size, 
                                             x*block_size + block_size, indexes[offset]*block_size + block_size, size);
                 }
-				MultiplyMatrices(block, block_temp, block_temp_im, block_size, block_size, block_size);
-                GetBlock(matrix, block_temp, x*block_size, indexes[y]*block_size, 
+				MultiplyMatrices(a.block, a.block_temp, a.block_temp_im, block_size, block_size, block_size);
+                GetBlock(matrix, a.block_temp, x*block_size, indexes[y]*block_size, 
 											 x*block_size + block_size, indexes[y]*block_size + block_size, size);
-				SubstractMatrices(block_temp, block_temp_im, block_size, block_size);
-                PutBlock(matrix, block_temp, x*block_size, indexes[y]*block_size, 
+				SubstractMatrices(a.block_temp, a.block_temp_im, block_size, block_size);
+                PutBlock(matrix, a.block_temp, x*block_size, indexes[y]*block_size, 
 											 x*block_size + block_size, indexes[y]*block_size + block_size, size);
             }
         }
@@ -781,89 +789,88 @@ void* Matrix::SolveBlock(void* in){
 		//if the last row exists, substract from them too
 		if(end > 0){
 			//first element of the last end row   
-            GetBlock(matrix, block_me, offset*block_size, step*block_size, 
+            GetBlock(matrix, a.block_me, offset*block_size, step*block_size, 
 									   offset*block_size + block_size, step*block_size + end, size);
             
             //rhs vector end block
-            GetBlock(rhs, vector_e, 0, step*block_size, 
+            GetBlock(rhs, a.vector_e, 0, step*block_size, 
 									1, step*block_size + end, 1);
-			MultiplyMatrices(block_me, vector_block_temp, vector_e_temp, end, block_size, 1);
-			SubstractMatrices(vector_e, vector_e_temp, 1, end);
-            PutBlock(rhs, vector_e, 0, step*block_size, 
+			MultiplyMatrices(a.block_me, a.vector_block_temp, a.vector_e_temp, end, block_size, 1);
+			SubstractMatrices(a.vector_e, a.vector_e_temp, 1, end);
+            PutBlock(rhs, a.vector_e, 0, step*block_size, 
 									1, step*block_size + end, 1);
 
             //ee block
-            GetBlock(matrix, block_ee, step*block_size, step*block_size, 
+            GetBlock(matrix, a.block_ee, step*block_size, step*block_size, 
 									   step*block_size + end, step*block_size + end, size);
-			MultiplyMatrices(block_me, block_me_temp, block_ee_temp, end, block_size, end);
-			SubstractMatrices(block_ee, block_ee_temp, end, end);
-            PutBlock(matrix, block_ee, step*block_size, step*block_size, 
+			MultiplyMatrices(a.block_me, a.block_me_temp, a.block_ee_temp, end, block_size, end);
+			SubstractMatrices(a.block_ee, a.block_ee_temp, end, end);
+            PutBlock(matrix, a.block_ee, step*block_size, step*block_size, 
 									   step*block_size + end, step*block_size + end, size);
             
             //substract all blocks
             
             for(int x = offset+1; x < step ; x++){
-                GetBlock(matrix, block_temp, x*block_size, indexes[offset]*block_size, 
+                GetBlock(matrix, a.block_temp, x*block_size, indexes[offset]*block_size, 
 											 x*block_size + block_size, indexes[offset]*block_size + block_size, size);
-				MultiplyMatrices(block_me, block_temp, block_me_temp_im, end, block_size, block_size);
-                GetBlock(matrix, block_me_temp_sub, x*block_size, step*block_size, 
+				MultiplyMatrices(a.block_me, a.block_temp, a.block_me_temp_im, end, block_size, block_size);
+                GetBlock(matrix, a.block_me_temp_sub, x*block_size, step*block_size, 
 											 		x*block_size + block_size, step*block_size + end, size);
-				SubstractMatrices(block_me_temp_sub, block_me_temp_im, block_size, end);
-                PutBlock(matrix, block_me_temp_sub, x*block_size, step*block_size, 
+				SubstractMatrices(a.block_me_temp_sub, a.block_me_temp_im, block_size, end);
+                PutBlock(matrix, a.block_me_temp_sub, x*block_size, step*block_size, 
 											 		x*block_size + block_size, step*block_size + end, size);
             }
 		}
-		
-		offset += 1;
 	}
 
 	if(end > 0){
-		GetBlock(matrix, block_ee, step*block_size, step*block_size, 
+		GetBlock(matrix, a.block_ee, step*block_size, step*block_size, 
 									   step*block_size + end, step*block_size + end, size);
-		EMatrix(block_ee_temp, end);
-		if(!GetInverseMatrix(block_ee, block_ee_temp, end, n, indexes_m)){
+		EMatrix(a.block_ee_temp, end);
+		if(!GetInverseMatrix(a.block_ee, a.block_ee_temp, end, n, indexes_m)){
         	printf("End part of the matrix could not be inverted\n");
             delete[] indexes;
             delete[] indexes_m;
 			DeleteTempAddresses(&a);
-            return -1;
+			args->return_value = -1;
+            return nullptr;
         }
 
-        GetBlock(rhs, vector_e, 0, step*block_size, 
+        GetBlock(rhs, a.vector_e, 0, step*block_size, 
                                 1, step*block_size + end, 1);
-		MultiplyMatrices(block_ee_temp, vector_e, vector_e_temp, end, end, 1);
-		PutBlock(rhs, vector_e_temp, 0, step*block_size, 
+		MultiplyMatrices(a.block_ee_temp, a.vector_e, a.vector_e_temp, end, end, 1);
+		PutBlock(rhs, a.vector_e_temp, 0, step*block_size, 
                                      1, step*block_size + end, 1);
 
         for(int y = 0; y < step; y++){
-            GetBlock(matrix, block_me, step*block_size, indexes[y]*block_size, 
+            GetBlock(matrix, a.block_me, step*block_size, indexes[y]*block_size, 
 									   step*block_size + end, indexes[y]*block_size + block_size, size);
-            MultiplyMatrices(block_me, vector_e_temp, vector_block, block_size, end, 1);
-            GetBlock(rhs, vector_block_temp, 0, indexes[y]*block_size,
+            MultiplyMatrices(a.block_me, a.vector_e_temp, a.vector_block, block_size, end, 1);
+            GetBlock(rhs, a.vector_block_temp, 0, indexes[y]*block_size,
                                             1, indexes[y]*block_size + block_size, 1);
-            SubstractMatrices(vector_block_temp, vector_block, 1, block_size);
-            PutBlock(rhs, vector_block_temp, 0, indexes[y]*block_size,
+            SubstractMatrices(a.vector_block_temp, a.vector_block, 1, block_size);
+            PutBlock(rhs, a.vector_block_temp, 0, indexes[y]*block_size,
                                             1, indexes[y]*block_size + block_size, 1);
         }
     } 
 
 	//backwards step
 	for (int x = step-1; x > 0; x--){
-     	GetBlock(rhs, vector_block, 0, indexes[x] * block_size, 
+     	GetBlock(rhs, a.vector_block, 0, indexes[x] * block_size, 
 								    1, indexes[x] * block_size + block_size, 1);
       	for (int y = 0; y < x; y++){
-          	GetBlock (matrix, block_temp, x * block_size, indexes[y] * block_size, 
+          	GetBlock (matrix, a.block_temp, x * block_size, indexes[y] * block_size, 
 										x * block_size + block_size, indexes[y] * block_size + block_size, size);
-			MultiplyMatrices(block_temp, vector_block, vector_block_temp, block_size, block_size, 1);
-          	GetBlock (rhs, vector_block_temp_im, 0, indexes[y] * block_size, 
+			MultiplyMatrices(a.block_temp, a.vector_block, a.vector_block_temp, block_size, block_size, 1);
+          	GetBlock (rhs, a.vector_block_temp_im, 0, indexes[y] * block_size, 
 										 1, indexes[y] * block_size + block_size, 1);
-			SubstractMatrices(vector_block_temp_im, vector_block_temp, 1, block_size);
-          	PutBlock (rhs, vector_block_temp_im, 0, indexes[y] * block_size, 
+			SubstractMatrices(a.vector_block_temp_im, a.vector_block_temp, 1, block_size);
+          	PutBlock (rhs, a.vector_block_temp_im, 0, indexes[y] * block_size, 
 										 1, indexes[y] * block_size + block_size, 1);
         }
     }
 
-	
+		
 	//swap the answer vector back
 	for(int y = 0; y < size; y++){
         if(y < step*block_size)
@@ -872,13 +879,16 @@ void* Matrix::SolveBlock(void* in){
             answer[y] = rhs[y];
     }
 	
-	
+	args->work_time = get_full_time() - args->work_time;
+	args->cpu_time = get_cpu_time() - args->cpu_time;	
+
+
 	delete[] indexes;
 	delete[] indexes_m;
 
 	DeleteTempAddresses(&a);
-    
-    return 0;
+    args->return_value = 0;
+    return nullptr;
 }
 
 

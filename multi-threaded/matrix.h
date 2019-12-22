@@ -37,6 +37,7 @@ typedef struct{
 	int thread_id;
     
     double work_time;
+	double cpu_time;
     
     pthread_barrier_t* barrier;
 } arg;

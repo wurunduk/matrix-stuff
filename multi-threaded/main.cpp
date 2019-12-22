@@ -64,7 +64,8 @@ int main(int argc, char* argv[]){
 
     printf("loading file %s with matrix size %d, block size %d, thread count %d\n", file_name, matrix_size, block_size, thread_count);
 
-	if(thread_count > matrix_size) thread_count = matrix_size;
+	if (thread_count > matrix_size / block_size)
+        thread_count = matrix_size / block_size;
 
 	pthread_barrier_init(&barrier, 0, thread_count);
 	
@@ -81,6 +82,8 @@ int main(int argc, char* argv[]){
     //e |= Matrix::CreateVector(&Ax, matrix_size);
 
     args = new arg[thread_count];
+
+	printf("args p %p size %d\n", (void*)args, sizeof(arg));
 
 	for(int i = 0; i < thread_count; i++){
 		//InitializeTempAddresses(&(args[i]->adr), &e);

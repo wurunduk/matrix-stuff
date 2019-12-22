@@ -681,12 +681,14 @@ void* Matrix::SolveBlock(void* in){
     pthread_barrier_wait(args->barrier);
     
 	for(int i = 0; i < p; i++){
-		if((args + i - id)->return_value != 0){
+		if((args + i - id)->return_value != NO_ERROR){
 			//other thread had an error, terminate
 			DeleteTempAddresses(&a);
             return nullptr;
 		}
 	}
+
+	pthread_barrier_wait(args->barrier);
 
 	//create a permutation, so we dont take time to actually move elements in the matrix
 	auto indexes = new int[step];
@@ -895,6 +897,7 @@ void* Matrix::SolveBlock(void* in){
 
 		pthread_barrier_wait(args->barrier);
 	}
+
 
 	if(end > 0 && id == 0){
 		GetBlock(matrix, a.block_ee, step*block_size, step*block_size, 

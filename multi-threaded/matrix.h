@@ -4,6 +4,9 @@
 #include "matrix_exception.h"
 #include <memory>
 
+double get_full_time();
+double get_cpu_time();
+
 typedef struct{
 	double* inverse_block;
 	double* block;
@@ -31,6 +34,9 @@ typedef struct{
 	int size;
 	int block_size;
 
+	int largest_index;
+	double largest_norm;
+
 	int return_value;
 
 	int thread_count;
@@ -43,10 +49,10 @@ typedef struct{
 } arg;
 
 namespace Matrix{
-	void InitializeTempAddresses(addresses_array* adr, int block_size, int end);
-	void DeleteTempAddresses(addresses_array* adr);
+	void InitializeTempAddresses(address_array* adr, int block_size, int end);
+	void DeleteTempAddresses(address_array* adr);
     
-    void AttachMatrices(arg* in);
+    MatrixException AttachMatrices(arg* in);
 
     void PrintClean(const double* matrix, const int w, const int h);
     void Print(const double* matrix, const int size, int print_size = 10);

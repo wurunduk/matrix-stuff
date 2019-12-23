@@ -101,9 +101,9 @@ int FindValues(double* a, double* values, int n, double eps)
 	int count = 0;
 	int iterations = 0;
 
-    double norm = Length(a, n, n);
+        double norm = Length(a, n, n);
     
-	double right_bound = norm + eps;
+        double right_bound = norm + 1e-10;
 	double left_bound = -right_bound;
 
 	double current_left = left_bound;
@@ -111,6 +111,8 @@ int FindValues(double* a, double* values, int n, double eps)
     
 	//Transfrom matrix to tridiagonal form
 	TridiagonalRotation(a, n);
+
+        PrintClean(a, n, 12);
 
 	for (int i = 0; i < n;)
 	{

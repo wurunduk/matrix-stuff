@@ -92,10 +92,10 @@ int main(int argc, char* argv[])
 	}
 
 	printf("Eigen values:\n");
-	PrintVector(values, matrix_size, matrix_size);
+        PrintVector(values, matrix_size, 12);
 
 	printf("Elapsed time: %.2f Iterations: %d\n", (double)t / CLOCKS_PER_SEC, total_iterations);
-	printf("Trace difference: %e, inv2: %e\n", trace, fabs(sqrt(inv2) - sqrt(inv1)));
+        printf("Trace difference: %e, inv2: %e\n", fabs(trace), fabs(sqrt(inv2) - sqrt(inv1)));
 
 	delete[] a;
 	delete[] values;

@@ -38,7 +38,7 @@ MatrixException ReadMatrix(double* matrix, const int w, const int h, const char*
                 fclose(f);
                 return FILE_CORRUPT;
             }
-            else if(y > x && fabs(matrix[x + y*h] - matrix[y + x*h]) > epsilon) return NON_DIAGONAL;
+            else if(y > x && fabs(matrix[x + y*h] - matrix[y + x*h]) > epsilon) return NON_SYMMETRICAL;
         }   
     }
     

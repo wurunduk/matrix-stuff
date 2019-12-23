@@ -9,6 +9,6 @@ enum MatrixException{
     NOT_ENOUGH_MEMORY,
     CAN_NOT_OPEN,
     FILE_CORRUPT,
-    NON_DIAGONAL
+    NON_SYMMETRICAL
 };
 #endif

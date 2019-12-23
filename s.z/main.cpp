@@ -25,8 +25,8 @@ static void ReportError(MatrixException ex){
 		case FILE_CORRUPT:
 		printf("Matrix file did not have enough numbers to fill the given array.\n");
 		return;
-        case NON_DIAGONAL:
-		printf("Matrix is not diagonal.\n");
+        case NON_SYMMETRICAL:
+		printf("Matrix is not symmetrical.\n");
 		return;
 	}
 }

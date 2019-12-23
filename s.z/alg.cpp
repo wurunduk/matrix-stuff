@@ -3,7 +3,7 @@
 #include "alg.h"
 #include "matrix.h"
 
-const double epsilon = 1e-100;
+const double epsilon = 1e-10;
 
 void TridiagonalRotation(double* a, int n)
 {
@@ -103,7 +103,7 @@ int FindValues(double* a, double* values, int n, double eps)
 
         double norm = Length(a, n, n);
     
-        double right_bound = norm + 1e-10;
+        double right_bound = norm + eps;
 	double left_bound = -right_bound;
 
 	double current_left = left_bound;
@@ -112,13 +112,15 @@ int FindValues(double* a, double* values, int n, double eps)
 	//Transfrom matrix to tridiagonal form
 	TridiagonalRotation(a, n);
 
-        PrintClean(a, n, 12);
-
 	for (int i = 0; i < n;)
 	{
 		while (current_right - current_left > eps)
 		{
 			double d = (current_left + current_right)/2.0;
+
+                        if(fabs(d-current_left) < 1e-100 || fabs(d-current_right) < 1e-100)
+                            break;
+
 			if (sign_count(a, n, d) < i + 1)
 				current_left = d;
 			else

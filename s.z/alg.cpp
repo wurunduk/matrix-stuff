@@ -103,7 +103,7 @@ int FindValues(double* a, double* values, int n, double eps)
 
     double norm = Length(a, n, n);
     
-	double right_bound = norm + 1e-10;
+	double right_bound = norm + eps;
 	double left_bound = -right_bound;
 
 	double current_left = left_bound;

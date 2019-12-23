@@ -3,6 +3,8 @@
 
 #include "matrix.h"
 
+const double epsilon = 1e-100;
+
 MatrixException FillMatrix(double* m, const int w, const int h){
 	for(int y = 0; y < h; y++)
 		for(int x = 0; x < w; x++){
@@ -20,7 +22,7 @@ MatrixException FillMatrix(double* m, const int w, const int h){
 			else if(x - y < 2 && x - y > -2)
 				m[y*w+x] = -1.0;
 			else m[y*w+x] = .0;*/
-			
+        
 		}
 
 	return NO_ERROR;
@@ -30,11 +32,14 @@ MatrixException ReadMatrix(double* matrix, const int w, const int h, const char*
     FILE* f = fopen(file_name, "r");
     if(!f) return CAN_NOT_OPEN;
     
-    for(int i = 0; i < w*h; i++){
-        if(fscanf(f, "%lf", &matrix[i]) != 1){
-            fclose(f);
-            return FILE_CORRUPT;
-        }
+    for(int y = 0; y < h; y++){
+        for(int x = 0; x < w; x++){
+            if(fscanf(f, "%lf", &matrix[x + y*h]) != 1){
+                fclose(f);
+                return FILE_CORRUPT;
+            }
+            else if(y > x && fabs(matrix[x + y*h] - matrix[y + x*h]) > epsilon) return NON_DIAGONAL;
+        }   
     }
     
     return NO_ERROR;

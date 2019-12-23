@@ -8,6 +8,7 @@ enum MatrixException{
     UNKNOWN_ERROR,
     NOT_ENOUGH_MEMORY,
     CAN_NOT_OPEN,
-    FILE_CORRUPT
+    FILE_CORRUPT,
+    NON_DIAGONAL
 };
 #endif

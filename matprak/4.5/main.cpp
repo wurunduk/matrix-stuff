@@ -57,21 +57,18 @@ void* thread_function(void* in){
         end_length += n%p;
     }
 
-    previous_num = a[length*id];
-    
+	if(id == 0)
+    	previous_num = a[length*id];
+    else
+		previous_num = a[length*id-1];
     //search out division for numbers
-    for(int x = 0; x < end_length; x++){
+    for(int x = 0; x < end_length - 2; x++){
         if(x + length*id - 1 >= 0 && x + length*id + 2 < n){
             if(x==0) {
-                args->left1 = a[length*id + x];
-                args->left2 = a[length*id + x];
-                previous_num = a[length*id + x - 1];
+                args->left1 = a[length*id];
+                args->left2 = a[length*id + 1];
             }
-            if(x==1){
-                args->left1 = a[length*id + x - 1];
-                args->left2 = a[length*id + x];
-            }
-            printf("step %d %lf", x, previous_num);
+            
             double temp = a[length*id + x];
             a[length*id + x] = (previous_num + a[length*id + x] + a[length*id + x + 1] + a[length*id + x + 2])/4.0;
             previous_num = temp;
@@ -91,17 +88,24 @@ void* thread_function(void* in){
 
     if(id == 0) print_array(a, n, n);
 
+	if(id == 0)
+	for(int i = 0; i < p; i++)
+		printf("thread %d    left1 %lf left2 %lf\n", i, (args-id+i)->left1, (args-id+i)->left2);
+
     pthread_barrier_wait(args->barrier);
 
     if(length == 1){
-        if(id + 2 < p && id > 0 ){
-            a[length*id] = ((args - 1)->left1 + a[length*id] + (args+1)->left1 +(args+2)->left2)/4.0;
+        if((length+1)*id + 2 < n && id > 0 ){
+			if(id == p - 2)
+				a[length*id] = ((args - 1)->left1 + a[length*id] + (args+1)->left1 +(args+1)->left2)/4.0;
+			else
+            	a[length*id] = ((args - 1)->left1 + a[length*id] + (args+1)->left1 +(args+2)->left1)/4.0;
         }
     }
     else{
-        if(id + 1 < p && id > 0 ){
+        if(id + 1 < p && id >= 0 ){
             double temp = a[length*id + end_length - 2];
-            a[length*id + end_length - 2] = (previous_num + a[length*id + end_length - 2] + a[length*id + end_length - 1] +(args+1)->left1)/4.0;
+            if(!(id == 0 && length == 2)) a[length*id + end_length - 2] = (previous_num + a[length*id + end_length - 2] + a[length*id + end_length - 1] +(args+1)->left1)/4.0;
             a[length*id + end_length - 1] = (temp + a[length*id + end_length - 1] + (args+1)->left1 + (args+1)->left2)/4.0;
         }
     }

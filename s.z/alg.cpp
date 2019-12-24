@@ -3,7 +3,7 @@
 #include "alg.h"
 #include "matrix.h"
 
-const double epsilon = 1e-10;
+const double sign_epsilon = 1e-10;
 
 void TridiagonalRotation(double* a, int n)
 {
@@ -20,12 +20,12 @@ void TridiagonalRotation(double* a, int n)
 			double x = a[i * n + i - 1];
 			double y = a[j * n + i - 1];
 
-			if (fabs(y) < epsilon)
+			if (fabs(y) < 1e-10)
 				continue;
 
 			double len = sqrt(x * x + y * y);
 
-			if (len < epsilon)
+			if (len < 1e-10)
 				continue;
 
 			double cos = x / len;
@@ -84,8 +84,8 @@ int sign_count(const double* a, int n, double lambda)
 
 	for (int i = 1; i < n; ++i)
 	{
-		if (fabs(b) < epsilon)
-			b = 1e-10;
+		if (fabs(b) < sign_epsilon)
+			b = sign_epsilon;
 
 		b = a[i * n + i] - lambda - a[i * n + i - 1] * a[(i - 1) * n + i] / b;
 
@@ -96,21 +96,30 @@ int sign_count(const double* a, int n, double lambda)
 	return signs;
 }
 
-int FindValues(double* a, double* values, int n, double eps)
+int FindValues(double* a, deigen_value* values, int n, int* found_values, double eps)
 {
 	int count = 0;
 	int iterations = 0;
 
-        double norm = Length(a, n, n);
+    double norm = Length(a, n, n);
     
-        double right_bound = norm + eps;
+    double right_bound = norm + eps;
 	double left_bound = -right_bound;
 
 	double current_left = left_bound;
 	double current_right = right_bound;
     
+	auto t = clock();
+
 	//Transfrom matrix to tridiagonal form
 	TridiagonalRotation(a, n);
+
+	t = clock() - t;
+
+	PrintMatrix(a, n, 10);
+
+	printf("Tridiagonal matrix in %.2f\n", (double)t / CLOCKS_PER_SEC);
+	
 
 	for (int i = 0; i < n;)
 	{
@@ -118,8 +127,8 @@ int FindValues(double* a, double* values, int n, double eps)
 		{
 			double d = (current_left + current_right)/2.0;
 
-                        if(fabs(d-current_left) < 1e-100 || fabs(d-current_right) < 1e-100)
-                            break;
+            if(fabs(d-current_left) < 1e-100 || fabs(d-current_right) < 1e-100)
+                break;
 
 			if (sign_count(a, n, d) < i + 1)
 				current_left = d;
@@ -131,14 +140,17 @@ int FindValues(double* a, double* values, int n, double eps)
 
 		count = sign_count(a, n, current_right) - sign_count(a, n, current_left);
 
-		for (int j = 0; j < count; j++)
-			values[i + j] = (current_left + current_right)/2.0;
+		values[i].value = (current_left + current_right)/2.0;
+		values[i].count = count;
 
 		i += count;
+
+		*found_values += 1;
 
 		current_left = (current_left + current_right)/2.0;
 		current_right = right_bound;
 	}
+
 
 	return iterations;
 }

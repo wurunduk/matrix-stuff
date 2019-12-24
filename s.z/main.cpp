@@ -41,7 +41,8 @@ int main(int argc, char* argv[])
 	char* file_name = nullptr;
 	int matrix_size = 0;
 	double* a = nullptr;
-	double* values = nullptr;
+	deigen_value* values = nullptr;
+	int found_values_amount = 0;
 	double eps;
 	int e = 0;			//MatrixException
 
@@ -57,9 +58,16 @@ int main(int argc, char* argv[])
 	printf("Loading file %s with matrix size %d, precision %e\n", file_name, matrix_size, eps);
 
 	a = new double[matrix_size*matrix_size];
-	values = new double[matrix_size];
+	values = new deigen_value[matrix_size];
 	
-	e |= file_name ? ReadMatrix(a, matrix_size, matrix_size, file_name) : FillMatrix(a, matrix_size, matrix_size);
+	if(file_name){
+		e |= ReadMatrix(a, matrix_size, matrix_size, file_name);
+	}else{
+		int type = 0;
+		printf("Input matrix type 0 - |i-j|, 1 - Hilbert, 2 - diagonal ones, 3 - diagonal twoes\n");
+		while(scanf("%d", &type) != 1){}
+		e |= FillMatrix(a, matrix_size, matrix_size, type);
+	}
 	
 	ReportError((MatrixException)e);
 	if(e != NO_ERROR){
@@ -82,20 +90,20 @@ int main(int argc, char* argv[])
 	}
 
 	auto t = clock();
-	int total_iterations = FindValues(a, values, matrix_size, eps);
+	int total_iterations = FindValues(a, values, matrix_size, &found_values_amount, eps);
 	t = clock() - t;
 
-	for (int i = 0; i < matrix_size; ++i)
+	for (int i = 0; i < matrix_size;)
 	{
-		trace -= values[i];
-		inv2 += values[i]*values[i];
+		trace -= values[i].value*values[i].count;
+		inv2 += values[i].value*values[i].value*values[i].count;
+		i += values[i].count;
 	}
 
-	printf("Eigen values:\n");
-        PrintVector(values, matrix_size, 12);
+	printf("Found %d eigen values:\n", found_values_amount);
+    PrintEigenVector(values, matrix_size, 12);
 
-	printf("Elapsed time: %.2f Iterations: %d\n", (double)t / CLOCKS_PER_SEC, total_iterations);
-        printf("Trace difference: %e, inv2: %e\n", fabs(trace), fabs(sqrt(inv2) - sqrt(inv1)));
+	printf("Elapsed time: %.2f, Iterations: %d, Trace difference: %e, inv2: %e\n", (double)t / CLOCKS_PER_SEC, total_iterations, fabs(trace), fabs(sqrt(inv2) - sqrt(inv1)));
 
 	delete[] a;
 	delete[] values;

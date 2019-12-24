@@ -5,25 +5,31 @@
 
 const double epsilon = 1e-100;
 
-MatrixException FillMatrix(double* m, const int w, const int h){
+MatrixException FillMatrix(double* m, const int w, const int h, const int type){
 	for(int y = 0; y < h; y++)
 		for(int x = 0; x < w; x++){
-                        m[y*w+x] = fabs(x-y);
-                        //m[y*w + x] = 1.0/(x+y+1);
-
-                        /*if(y == h-1)
-				m[y*w+x] = x + 1.0;
-			else if(x == w-1)
-				m[y*w+x] = y + 1.0;
-                        else m[y*w+x] = (double)(x==y);*/
-
-			
-                        /*if(x == y)
-				m[y*w+x] = 2.0;
-			else if(x - y < 2 && x - y > -2)
-				m[y*w+x] = -1.0;
-                        else m[y*w+x] = .0;*/
-        
+			switch(type){
+				case 0:
+                	m[y*w+x] = fabs(x-y);
+				break;
+				case 1:
+                    m[y*w + x] = 1.0/(x+y+1);
+				break;
+				case 2:
+		            if(y == h-1)
+						m[y*w+x] = x + 1.0;
+					else if(x == w-1)
+						m[y*w+x] = y + 1.0;
+		            else m[y*w+x] = (double)(x==y);
+				break;
+				default:
+                	if(x == y)
+						m[y*w+x] = 2.0;
+					else if(x - y < 2 && x - y > -2)
+						m[y*w+x] = -1.0;
+                    else m[y*w+x] = .0;
+				break;
+        	}
 		}
 
 	return NO_ERROR;
@@ -102,21 +108,25 @@ void PrintMatrix(const double* matrix, const int size, int print_size = 10){
 
 }
 
-void PrintVector(const double* vector, const int size, int print_size = 10){
+void PrintEigenVector(const deigen_value* vector, const int size, int print_size = 10){
 	int n = size;
     
     if(print_size >= size){
-        PrintClean(vector, 1, size);
-        return;
+        for(int y = 0; y < n;){
+			printf("%e\n", vector[y].value);
+			y += vector[y].count;
+		}
+		printf("\n");
     }
     
     if(n > print_size) n = print_size;
 
-    for(int y = 0; y < n-1; y++){
-        printf("%lf", vector[y]);
-        printf("\n");
+	int id = 0;
+    for(int y = 0; y < n-1 && id < size-1;y++){
+        printf("%e\n", vector[id].value);
+        id += vector[id].count;
     }
 
 	printf("...\n");
-    printf("%lf\n", vector[size-1]);
+    printf("%e\n", vector[size-1].value);
 }

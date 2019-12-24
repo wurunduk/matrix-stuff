@@ -10,12 +10,14 @@ typedef struct{
     int m;
     int p;
     
+    int largest_found_prime = 0;
+    
     int cur_found_pairs = 0;
-    int sum_found_pairs = 0;
+    
     int index;
     int length;
+    int* largest_answer;
     int* total_found_pairs;
-    int* sum_of_found_pairs;
     
     double work_time = 0;
     
@@ -36,120 +38,104 @@ double get_time(){
     return (double)buffer.ru_utime.tv_sec + (double)buffer.ru_utime.tv_usec/1000000.;
 }
 
+int is_prime(int num){
+    int is_prime = 1;
+    double c = sqrt(num) + 1;
+    if(num%2 == 0) return 0;
+    for(int i = 3; i < c; i+=2){
+        if(num%i == 0){
+            //this one is devidable
+            is_prime = 0;
+            break;
+        }
+    }
+    return is_prime;
+}
+
 void* thread_function(void* in);
 
 void* thread_function(void* in){
     arg* args = (arg*)in;
     
+    int m = args->m;
+    int n = args->n;
+    int p = args->p;
+    
+    int length = args->length;
+    
     args->work_time = get_time();
     
-    while(*(args->total_found_pairs) != args->n){
-        int first_prime = 0;
-    
-        int last_prime = 0;
-    
-        int is_prime = 1;
-        
+    while(*(args->total_found_pairs) < n){        
         args->cur_found_pairs = 0;
-        args->sum_found_pairs = 0;
         
-        for(int prime = args->index*args->length; prime < (args->index + 1)*args->length; prime++){
-            is_prime = 1;
-            for(int i = 2; i < sqrt(prime); i++){
-                if(prime%i == 0){
-                    //this one is devidable
-                    is_prime = 0;
+        int start = args->index*length + ((args->index*length+1)&1);
+        
+        int next_prime_1 = is_prime(start);
+        int next_prime_2 = is_prime(start+2);
+        int next_prime_3 = is_prime(start+4);
+        
+        for(int prime = start; prime < (args->index + 1)*length; prime+=2){
+            int next_is_prime = is_prime(prime+6);
+            if(next_prime_1){
+                if(next_is_prime){
+                    args->largest_found_prime = prime+6;
+                    args->cur_found_pairs += 1;
+                    
+                }
+            }
+            next_prime_1 = next_prime_2;
+            next_prime_2 = next_prime_3;
+            next_prime_3 = next_is_prime;
+        }
+        
+        pthread_barrier_wait(args->barrier);
+        //do the counting in the main thread
+        if(m == 0){
+            //printf("step %llu\n", *(args->total_found_pairs));
+            for(int i = 0; i < p; i++){
+                int current_pairs = *(args->total_found_pairs);
+                //adding the result of this thread will send over the limit, which means
+                //the right pair amount is reached in this thread
+                if(current_pairs + (args+i)->cur_found_pairs > n){
+                    printf("thread %d went over the limit with %d found pairs, pairs found %d\n", i, (args+i)->cur_found_pairs, current_pairs);
+                    start = (args+i)->index*length + (((args+i)->index*length+1)&1);
+                    next_prime_1 = is_prime(start);
+                    next_prime_2 = is_prime(start+2);
+                    next_prime_3 = is_prime(start+4);
+                    //recalculate answer of this thread until total_found_pairs = n exactly
+                    for(int prime = start; prime < ((args+i)->index + 1)*length; prime+=2){
+                        int next_is_prime = is_prime(prime+6); 
+                        if(next_prime_1){
+                            if(next_is_prime){
+                                *(args->largest_answer) = prime+6;
+                                *(args->total_found_pairs) += 1;
+                                current_pairs += 1;
+                                
+                                
+                                if(current_pairs == n) break;
+                            }
+                        }
+                        next_prime_1 = next_prime_2;
+                        next_prime_2 = next_prime_3;
+                        next_prime_3 = next_is_prime;
+                    }
+                    break;
+                }
+                else if(current_pairs + (args+i)->cur_found_pairs < n){
+                    *(args->total_found_pairs) += (args+i)->cur_found_pairs;
+                }
+                else {
+                    *(args->total_found_pairs) += (args+i)->cur_found_pairs;
+                    *(args->largest_answer) = (args+i)->largest_found_prime;
                     break;
                 }
             }
-            if(is_prime){
-                if(first_prime == 0){
-                    first_prime = prime;
-                }
-                //we know that thedifference is 6 between this two
-                if(prime - last_prime == 6){
-                    args->cur_found_pairs += 1;
-                    args->sum_found_pairs += prime + last_prime;
-                }
-                last_prime = prime;
-            }
         }
-        
-        args->first_prime = first_prime;
-        
-        pthread_barrier_wait(args->barrier);
             
-            if(args->m < ((args->p) - 1)){
-                //if(args->index < 100)
-                //        printf("yay %d %d\n", (args+1)->first_prixme, last_prime);
-                if((args+1)->first_prime - last_prime == 6){
-                    
-                    args->cur_found_pairs += 1;
-                    args->sum_found_pairs += (args+1)->first_prime + last_prime ;
-                }
-            }
-            
-            //if(args->index < 100)
-                //printf("Thread %d found %d pairs on interval [%d, %d]\n", args->m, args->cur_found_pairs, args->index*args->length, (args->index + 1)*args->length);
-            
-            pthread_barrier_wait(args->barrier);
-            //do the counting in the main thread
-            if(args->m == 0){
-                for(int i = 0; i < args->p; i++){
-                    int current_pairs = *(args->total_found_pairs);
-                    //printf("pairs found on previous steps: %d\n", current_pairs);
-                    //int current_answer = *(args->sum_of_found_pairs);
-                    //adding the result of this thread will send over the limit, whioch means
-                    //the right pair amount is reached in this thread
-                    if(current_pairs + (args+i)->cur_found_pairs > args->n){
-                        printf("thread %d went over the limit with %d found pairs, pairs found %d, sum %d\n", i, (args+i)->cur_found_pairs, current_pairs, *(args->sum_of_found_pairs));
-                        //recalculate answer of this thread until total_found_pairs = n exactly
-                        int prime = ((args->index)+i)*args->length;
-                        last_prime = 0;
-                        (args+i)->cur_found_pairs = 0;
-                        (args+i)->sum_found_pairs = 0;
-                        while(current_pairs + (args+i)->cur_found_pairs != args->n){
-                            is_prime = 1;
-                            for(int i = 2; i < sqrt(prime); i++){
-                                if(prime%i == 0){
-                                    //this one is devidable
-                                    is_prime = 0;
-                                    break;
-                                }
-                            }
-                            if(is_prime){
-                                //we know that thedifference is 6 between this two
-                                if(last_prime == 0){
-                                    last_prime = prime;
-                                }
-                                else if(prime - last_prime == 6){
-                                    (args+i)->cur_found_pairs += 1;
-                                    (args+i)->sum_found_pairs += prime + last_prime;
-                                }
-                                last_prime = prime;
-                            }
-                            prime++;
-                        }
-                        *(args->total_found_pairs) += (args+i)->cur_found_pairs;
-                        *(args->sum_of_found_pairs) += (args+i)->sum_found_pairs;
-                        break;
-                    }
-                    else if(current_pairs + (args+i)->cur_found_pairs < args->n){
-                        *(args->total_found_pairs) += (args+i)->cur_found_pairs;
-                        *(args->sum_of_found_pairs) += (args+i)->sum_found_pairs;
-                    }
-                    else {
-                        printf("thread %d got exactly the limit with %d found pairs, pairs found %d, sum %d\n", i, (args+i)->cur_found_pairs, current_pairs, *(args->sum_of_found_pairs));
-                        *(args->total_found_pairs) += (args+i)->cur_found_pairs;
-                        *(args->sum_of_found_pairs) += (args+i)->sum_found_pairs;
-                        printf("thread %d got exactly the limit with %d found pairs, pairs found %d, sum %d\n", i, (args+i)->cur_found_pairs, (args+i)->sum_found_pairs, *(args->sum_of_found_pairs));
-                        break;
-                    }
-                }
-            }
+        //printf("%d didthe meme %d %d\n", m, *(args->total_found_pairs), args->cur_found_pairs);
             
         pthread_barrier_wait(args->barrier);
-        args->index += args->p;
+        args->index += p;
     }
     
     args->work_time = get_time() - args->work_time;
@@ -169,17 +155,19 @@ int main(int argc, char* argv[]) {
     }
     
     p = atoi(argv[1]);
+    
+    if(p < 0){
+        printf("You need more than 0 threads\n");
+        return 1;
+    }
+    
     n = atoi(argv[2]);
     
     //used by threads for syncing answers and longest arrays
     int answer = 0;
-    int pairs_found = 0;
+    int total_found_pairs = 0;
     
-    double t = get_full_time();
-    
-    int length = 1000;
-    if(length < 10) length = 10;
-    printf("Length %d %d \n ", length, n);
+    int length = 10000;
     
     pthread_barrier_t barrier;
     
@@ -187,32 +175,18 @@ int main(int argc, char* argv[]) {
     arg* args = new arg[p];
     
     pthread_barrier_init(&barrier, 0, p);
-    /*
-     * int n;
-    int m;
-    int p;
     
-    int cur_found_pairs = 0;
-    int index;
-    int* total_found_pairs;
-    
-    int first_prime_distance;
-    int first_prime;
-    
-    pthread_mutex_t* mutex;
-    pthread_barrier_t* barrier;
-     */
+    double t = get_full_time();
     
     for(int i = 0; i < p; i++){
         args[i].n = n;
         args[i].m = i;
         args[i].p = p;
         args[i].cur_found_pairs = 0;
-        args[i].sum_found_pairs = 0;
         args[i].index = i;
         args[i].length = length;
-        args[i].total_found_pairs = &pairs_found;
-        args[i].sum_of_found_pairs = &answer;
+        args[i].largest_answer = &answer;
+        args[i].total_found_pairs = &total_found_pairs;
         args[i].first_prime = 0;
         args[i].work_time = 0;
         args[i].barrier = &barrier;
@@ -232,7 +206,7 @@ int main(int argc, char* argv[]) {
     
     printf("Total time taken: %lf\n", get_full_time() - t);
     
-    printf("Found %d pairs summed up to %d\n", pairs_found, answer);
+    printf("%d-th pair number: %d\n", n, answer);
     
     pthread_barrier_destroy(&barrier);
     

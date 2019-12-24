@@ -8,13 +8,14 @@ const double epsilon = 1e-100;
 MatrixException FillMatrix(double* m, const int w, const int h){
 	for(int y = 0; y < h; y++)
 		for(int x = 0; x < w; x++){
+                        m[y*w+x] = fabs(x-y);
                         //m[y*w + x] = 1.0/(x+y+1);
 
-                        if(y == h-1)
+                        /*if(y == h-1)
 				m[y*w+x] = x + 1.0;
 			else if(x == w-1)
 				m[y*w+x] = y + 1.0;
-                        else m[y*w+x] = (double)(x==y);
+                        else m[y*w+x] = (double)(x==y);*/
 
 			
                         /*if(x == y)

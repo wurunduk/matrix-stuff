@@ -96,7 +96,7 @@ MatrixException Matrix::AttachMatrices(arg* in){
     
     if(id == 0){
         auto e = in->file_name ? ReadMatrix(in->matrix, n, n, in->file_name) : FillMatrix(in->matrix, n, n);
-        GetRHSVector(in->matrix, in->rhs, n);
+        if(e == NO_ERROR) GetRHSVector(in->matrix, in->rhs, n);
         return e;
     }
     else return NO_ERROR;

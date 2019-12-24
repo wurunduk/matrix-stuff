@@ -69,10 +69,10 @@ int main(int argc, char* argv[]){
 
 	pthread_barrier_init(&barrier, 0, thread_count);
 	
-    A = new double[matrix_size*matrix_size*2];
-    Ax = A + matrix_size*matrix_size;
-    x = new double[matrix_size*2];
+    A = new double[matrix_size*matrix_size];
+    x = new double[matrix_size*3];
     b = x + matrix_size;
+    Ax = b + matrix_size;
     
     //initialize used variables
     //e |= Matrix::CreateMatrix(&A, matrix_size, matrix_size, file_name);

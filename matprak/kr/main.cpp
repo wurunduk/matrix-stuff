@@ -41,7 +41,7 @@ double get_time(){
 int is_prime(int num){
     int is_prime = 1;
     double c = sqrt(num) + 1;
-    if(num%2 == 0) return 0;
+    if(num%2 == 0 || num == 1) return 0;
     for(int i = 3; i < c; i+=2){
         if(num%i == 0){
             //this one is devidable
@@ -80,7 +80,6 @@ void* thread_function(void* in){
                 if(next_is_prime){
                     args->largest_found_prime = prime+6;
                     args->cur_found_pairs += 1;
-                    
                 }
             }
             next_prime_1 = next_prime_2;
@@ -110,7 +109,6 @@ void* thread_function(void* in){
                                 *(args->largest_answer) = prime+6;
                                 *(args->total_found_pairs) += 1;
                                 current_pairs += 1;
-                                
                                 
                                 if(current_pairs == n) break;
                             }
@@ -156,7 +154,7 @@ int main(int argc, char* argv[]) {
     
     p = atoi(argv[1]);
     
-    if(p < 0){
+    if(p < 1){
         printf("You need more than 0 threads\n");
         return 1;
     }
@@ -167,7 +165,7 @@ int main(int argc, char* argv[]) {
     int answer = 0;
     int total_found_pairs = 0;
     
-    int length = 10000;
+    int length = 100;
     
     pthread_barrier_t barrier;
     

@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
 		e |= ReadMatrix(a, matrix_size, matrix_size, file_name);
 	}else{
 		int type = 0;
-		printf("Input matrix type 0 - |i-j|, 1 - Hilbert, 2 - diagonal ones, 3 - diagonal twoes\n");
+		printf("Input matrix type 1 - Hilbert, 2 - diagonal ones, 3 - diagonal twos\n");
 		while(scanf("%d", &type) != 1){}
 		e |= FillMatrix(a, matrix_size, matrix_size, type);
 	}

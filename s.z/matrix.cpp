@@ -9,9 +9,6 @@ MatrixException FillMatrix(double* m, const int w, const int h, const int type){
 	for(int y = 0; y < h; y++)
 		for(int x = 0; x < w; x++){
 			switch(type){
-				case 0:
-                	m[y*w+x] = fabs(x-y);
-				break;
 				case 1:
                     m[y*w + x] = 1.0/(x+y+1);
 				break;

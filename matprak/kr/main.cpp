@@ -148,7 +148,7 @@ int main(int argc, char* argv[]) {
     //double time = get_time();
     
     if(argc!=3){
-        printf("Error reading parametres\n");
+        printf("Wrong input! Use %s p n\n", argv[0]);
         return 1;
     }
     

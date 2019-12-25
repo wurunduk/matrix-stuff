@@ -93,17 +93,17 @@ void PrintMatrix(const double* matrix, const int size, int print_size = 10){
 
     for(int y = 0; y < n-1; y++){
         for(int x = 0; x < n-1; x++)
-            printf("%lf ", matrix[x + y*size]);
-		printf("... %lf ", matrix[size-1 + y*size]);
+            printf("%.2lf ", matrix[x + y*size]);
+		printf("... %.2lf ", matrix[size-1 + y*size]);
         printf("\n");
     }
 
 	printf("...\n");
 
 	for(int x = 0; x < n-1; x++)
-            printf("%lf ", matrix[x + (size-1)*size]);
+            printf("%.2lf ", matrix[x + (size-1)*size]);
 	
-	printf("... %lf ", matrix[size*size-1]);
+	printf("... %.2lf ", matrix[size*size-1]);
     printf("\n");
 
 }

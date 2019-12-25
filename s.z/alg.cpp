@@ -33,10 +33,10 @@ void TridiagonalRotation(double* a, int n)
 
 			//as a aresult we get (1 0)*N
 			a[i * n + i - 1] = len;
-			a[j * n + i - 1] = .0;
-
-			//matrix is symmetrical, we will get the same result if mirrored against xy axis
 			a[(i - 1) * n + i] = len;
+            
+			//matrix is symmetrical, we will get the same result if mirrored against xy axis
+			a[j * n + i - 1] = .0;
 			a[(i - 1) * n + j] = .0;
 
 			for (int k = i + 1; k < n; k++)
@@ -48,9 +48,9 @@ void TridiagonalRotation(double* a, int n)
 				y = a[j * n + k];
 
 				a[i * n + k] = x * cos - y * sin;
-				a[j * n + k] = x * sin + y * cos;
-
 				a[k * n + i] = x * cos - y * sin;
+                
+                a[j * n + k] = x * sin + y * cos;
 				a[k * n + j] = x * sin + y * cos;
 			}
 
@@ -116,9 +116,9 @@ int FindValues(double* a, deigen_value* values, int n, int* found_values, double
 
 	t = clock() - t;
 
+    printf("\n");
 	PrintMatrix(a, n, 10);
-
-	printf("Tridiagonal matrix in %.2f\n", (double)t / CLOCKS_PER_SEC);
+	printf("\nTridiagonal matrix in %.2f\n", (double)t / CLOCKS_PER_SEC);
 	
 
 	for (int i = 0; i < n;)

@@ -61,6 +61,9 @@ void* thread_function(void* in){
     	previous_num = a[length*id];
     else
 		previous_num = a[length*id-1];
+    
+    args->left1 = a[length*id];
+    args->left2 = a[length*id];
     //search out division for numbers
     for(int x = 0; x < end_length - 2; x++){
         if(x + length*id - 1 >= 0 && x + length*id + 2 < n){
@@ -84,18 +87,21 @@ void* thread_function(void* in){
         args->left2 = a[length*id + 1];
     }
     
+    
     pthread_barrier_wait(args->barrier);
 
     if(id == 0) print_array(a, n, n);
 
-	if(id == 0)
-	for(int i = 0; i < p; i++)
-		printf("thread %d    left1 %lf left2 %lf\n", i, (args-id+i)->left1, (args-id+i)->left2);
-
+	if(id == 0){
+        for(int i = 0; i < p; i++)
+            printf("thread %d    left1 %lf left2 %lf\n", i, (args+i)->left1, (args+i)->left2);
+    }
+        
     pthread_barrier_wait(args->barrier);
-
+    
     if(length == 1){
-        if((length+1)*id + 2 < n && id > 0 ){
+        //int final_length = length + n%p;
+        if((length)*id + 2 < n && id > 0 && length*id + 2 < n && id != p-1){
 			if(id == p - 2)
 				a[length*id] = ((args - 1)->left1 + a[length*id] + (args+1)->left1 +(args+1)->left2)/4.0;
 			else
@@ -103,9 +109,9 @@ void* thread_function(void* in){
         }
     }
     else{
-        if(id + 1 < p && id >= 0 ){
+        if(length*id + end_length - 2 >= 0 && id + 1 < p && id >= 0 ){
             double temp = a[length*id + end_length - 2];
-            if(!(id == 0 && length == 2)) a[length*id + end_length - 2] = (previous_num + a[length*id + end_length - 2] + a[length*id + end_length - 1] +(args+1)->left1)/4.0;
+            if(length*id + end_length - 2 > 0) a[length*id + end_length - 2] = (previous_num + a[length*id + end_length - 2] + a[length*id + end_length - 1] + (args+1)->left1)/4.0;
             a[length*id + end_length - 1] = (temp + a[length*id + end_length - 1] + (args+1)->left1 + (args+1)->left2)/4.0;
         }
     }

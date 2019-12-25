@@ -142,12 +142,15 @@ int main(int argc, char* argv[]) {
     }
     
     int error = 0;
+    int found_files = 0;
     for(int i = 0; i < files_num; i++){
         pthread_join(threads[i], 0);
+        found_files += args[i].found_max;
         printf("Return value of thread %d is %d\n", i, args[i].return_value);
         if(args[i].return_value < 0) error = args[i].return_value;
     }
-    if(!error) printf("Answer %d\n", answer);
+    if(!error && found_files > 0) printf("Answer %d\n", answer);
+    else if(found_files == 0) printf("No numbers were found in any files\n");
     else printf("Error %d occured\n", error);
     
     pthread_barrier_destroy(&barrier);

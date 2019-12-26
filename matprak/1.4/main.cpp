@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <pthread.h>
+#include <cmath>
 
 typedef struct{
     char* file_name;
@@ -12,6 +13,7 @@ typedef struct{
     int return_value;
 } arg;
 
+const double epsilon = 1e-16;
 
 void* thread_function(void* in);
 
@@ -40,8 +42,8 @@ void* thread_function(void* in){
                 max = cur;
                 max_count = 1;
             }
-			else if(cur == max){
-				max_count += 1;
+			else if(fabs(cur - max) < epsilon){
+				max_count +=1;
 			}
         }
         if(!feof(f)){
@@ -66,6 +68,20 @@ void* thread_function(void* in){
     args->local_max = max;
     fclose(f);
     return 0;
+}
+
+void ReportError(int e){
+    switch(e){
+        case -1:
+            printf("File could not be opened.\n");
+        break;
+        case -2:
+            printf("Could not read a number.\n");
+        break;
+        default:
+            printf("I should not be here.\n");
+        break;
+    }
 }
 
 int main(int argc, char* argv[]) {
@@ -104,14 +120,14 @@ int main(int argc, char* argv[]) {
     for(int i = 0; i < files_num; i++){
         pthread_join(threads[i], 0);
         found_files_amount += args[i].did_find_element;
-		answer += args->max_count;
-        printf("Return value of thread %d is %d\n", i, args[i].return_value);
+		if(args[i].did_find_element) answer += args[i].max_count;
+        printf("Return value of thread %d is %d, nums found %d\n", i, args[i].return_value, args[i].max_count);
         if(args[i].return_value < 0) error = args[i].return_value;
     }
 
     if(!error && found_files_amount > 0) printf("Answer %d\n", answer);
     else if(found_files_amount == 0) printf("No numbers were found in any file\n");
-    else printf("Error %d occured\n", error);
+    else ReportError(error);
     
     delete[] threads;
     delete[] args;

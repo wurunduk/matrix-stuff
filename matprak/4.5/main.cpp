@@ -90,15 +90,6 @@ void* thread_function(void* in){
     
     pthread_barrier_wait(args->barrier);
 
-    if(id == 0) print_array(a, n, n);
-
-	if(id == 0){
-        for(int i = 0; i < p; i++)
-            printf("thread %d    left1 %lf left2 %lf\n", i, (args+i)->left1, (args+i)->left2);
-    }
-        
-    pthread_barrier_wait(args->barrier);
-    
     if(length == 1){
         //int final_length = length + n%p;
         if((length)*id + 2 < n && id > 0 && length*id + 2 < n && id != p-1){
@@ -124,13 +115,13 @@ void* thread_function(void* in){
 void print_error(int id){
     switch(id){
         case -1:
-            printf("File could not be opened\n");
+            printf("File could not be opened.\n");
             break;
         case -2:
-            printf("File read error\n");
+            printf("File read error.\n");
             break;
         default:
-            printf("Unknown error\n");
+            printf("Unknown error.\n");
     }
 }
 
@@ -144,7 +135,7 @@ void print_array(double* a, int width, int print_size){
 
 void fill_function(double* a, int w){
     for(int x = 0; x < w; x++)
-        a[x] = 1.0/(x + 1);
+        a[x] = x;
 }
 
 int read_file(double* matrix, int w, char* file_name){

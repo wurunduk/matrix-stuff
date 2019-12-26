@@ -20,12 +20,12 @@ void TridiagonalRotation(double* a, int n)
 			double x = a[i * n + i - 1];
 			double y = a[j * n + i - 1];
 
-			if (fabs(y) < epsilon)
+			if (fabs(y) < 1e-10)
 				continue;
 
 			double len = sqrt(x * x + y * y);
 
-			if (len < epsilon)
+			if (len < 1e-10)
 				continue;
 
 			double cos = x / len;

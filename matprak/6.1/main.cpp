@@ -191,7 +191,7 @@ void print_error(int id){
     }
 }
 
-void print_matrix(double* a, int width, int height, int print_size = 10){
+void print_matrix(double* a, int width, int height, int print_size = 25){
     int pw = width > print_size ? print_size : width;
     int ph = height > print_size ? print_size : height;
     for(int y = 0; y < ph; y++){
@@ -204,7 +204,7 @@ void print_matrix(double* a, int width, int height, int print_size = 10){
 void fill_function(double* a, int n1, int n2){
     for(int y = 0; y < n2; y++)
         for(int x = 0; x < n1; x++)
-            a[x + n1*y] = 1.0/(x+y+1);
+            a[x + n1*y] = 1.5 + (x+y)%2;
 }
 
 int read_file(double* matrix, int n1, int n2, char* file_name){
@@ -235,7 +235,7 @@ int main(int argc, char* argv[]) {
     printf("\n");
     
     if(p > n1){
-        printf("Tried to use more threads than makes sense, using %d threads.\n", n1*n2);
+        printf("Tried to use more threads than makes sense, using %d threads.\n", n1);
         p = n1;
     }
     

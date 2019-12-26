@@ -114,6 +114,7 @@ void PrintEigenVector(const deigen_value* vector, const int size, int print_size
 			y += vector[y].count;
 		}
 		printf("\n");
+        return;
     }
     
     if(n > print_size) n = print_size;

@@ -40,9 +40,8 @@ double get_time(){
 
 int is_prime(int num){
     int is_prime = 1;
-    double c = sqrt(num) + 1;
     if(num%2 == 0 || num == 1) return 0;
-    for(int i = 3; i < c; i+=2){
+    for(int i = 3; i*i <= num; i+=2){
         if(num%i == 0){
             //this one is devidable
             is_prime = 0;
@@ -61,31 +60,39 @@ void* thread_function(void* in){
     int n = args->n;
     int p = args->p;
     
+    int id = args->index;
+    
     int length = args->length;
     
     args->work_time = get_time();
     
+    int local_largest_prime = 0;
+    int local_found_pairs = 0;
+    
     while(*(args->total_found_pairs) < n){        
-        args->cur_found_pairs = 0;
+        local_found_pairs = 0;
         
-        int start = args->index*length + ((args->index*length+1)&1);
+        int start = id*length + ((id*length+1)&1);
         
         int next_prime_1 = is_prime(start);
         int next_prime_2 = is_prime(start+2);
         int next_prime_3 = is_prime(start+4);
         
-        for(int prime = start; prime < (args->index + 1)*length; prime+=2){
+        for(int prime = start; prime < (id + 1)*length; prime+=2){
             int next_is_prime = is_prime(prime+6);
             if(next_prime_1){
                 if(next_is_prime){
-                    args->largest_found_prime = prime+6;
-                    args->cur_found_pairs += 1;
+                    local_largest_prime = prime+6;
+                    local_found_pairs += 1;
                 }
             }
             next_prime_1 = next_prime_2;
             next_prime_2 = next_prime_3;
             next_prime_3 = next_is_prime;
         }
+        
+        args->largest_found_prime = local_largest_prime;
+        args->cur_found_pairs = local_found_pairs;
         
         pthread_barrier_wait(args->barrier);
         //do the counting in the main thread
@@ -130,10 +137,9 @@ void* thread_function(void* in){
             }
         }
             
-        //printf("%d didthe meme %d %d\n", m, *(args->total_found_pairs), args->cur_found_pairs);
-            
         pthread_barrier_wait(args->barrier);
         args->index += p;
+        id+= p;
     }
     
     args->work_time = get_time() - args->work_time;
@@ -165,7 +171,7 @@ int main(int argc, char* argv[]) {
     int answer = 0;
     int total_found_pairs = 0;
     
-    int length = 100;
+    int length = 10000;
     
     pthread_barrier_t barrier;
     
@@ -173,8 +179,6 @@ int main(int argc, char* argv[]) {
     arg* args = new arg[p];
     
     pthread_barrier_init(&barrier, 0, p);
-    
-    double t = get_full_time();
     
     for(int i = 0; i < p; i++){
         args[i].n = n;
@@ -188,6 +192,11 @@ int main(int argc, char* argv[]) {
         args[i].first_prime = 0;
         args[i].work_time = 0;
         args[i].barrier = &barrier;
+    }
+    
+    double t = get_full_time();
+    
+    for(int i = 1; i < p; i++){
         if(pthread_create(&threads[i], 0, &thread_function, args+i))
         {
             delete[] threads;
@@ -197,7 +206,9 @@ int main(int argc, char* argv[]) {
         }
     }
     
-    for(int i = 0; i < p; i++){
+    thread_function(args+0);
+    
+    for(int i = 1; i < p; i++){
         pthread_join(threads[i], 0);
         printf("Total time taken by thread %d: %lf\n", i, args[i].work_time);
     }

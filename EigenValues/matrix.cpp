@@ -110,20 +110,18 @@ void PrintEigenVector(const deigen_value* vector, const int size, int print_size
     
     if(print_size >= size){
         for(int y = 0; y < n;){
-			printf("%e\n", vector[y].value);
+			printf("%e - %d\n", vector[y].value, vector[y].count);
 			y += vector[y].count;
 		}
 		printf("\n");
+        return;
     }
     
     if(n > print_size) n = print_size;
 
 	int id = 0;
-    for(int y = 0; y < n-1 && id < size-1;y++){
-        printf("%e\n", vector[id].value);
+    for(int y = 0; y < n-1 && id < size;y++){
+        printf("%e - %d\n", vector[id].value, vector[id].count);
         id += vector[id].count;
     }
-
-	printf("...\n");
-    printf("%e\n", vector[size-1].value);
 }

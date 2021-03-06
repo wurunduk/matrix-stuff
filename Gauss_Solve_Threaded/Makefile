@@ -6,8 +6,8 @@ OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=a.out
 
 all: $(SOURCES) $(EXECUTABLE)
-	
-$(EXECUTABLE): $(OBJECTS) 
+
+$(EXECUTABLE): $(OBJECTS)
 	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
 
 .cpp.o:

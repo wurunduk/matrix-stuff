@@ -4,8 +4,8 @@
 #include "matrix_exception.h"
 #include <memory>
 
-namespace Matrix{
-	void FillMatrix(double* matrix, const int w, const int h);	
+namespace Matrix {
+	void FillMatrix(double* matrix, const int w, const int h);
 	void GetAnswerVector(double* vector, const int size);
     void PrintClean(const double* matrix, const int w, const int h);
     void Print(const double* matrix, const int size, int print_size = 10);
@@ -14,14 +14,14 @@ namespace Matrix{
 	void PrintVector(const double* vector, const int size, const int* indexes, int print_size = 10);
 	double Length(const double* matrix, const int w, const int h);
 	double LengthVector(const double* vector, const int size);
-    
+
     void NullMatrix(double* matrix, const int size);
 	void EMatrix(double* matrix, const int size);
     MatrixException ReadMatrix(double* matrix, const int w, const int h, const char* file_name);
     MatrixException InitMatrix(double* matrix, const int w, const int h, const char* file_name);
 
 	void GetRHSVector(const double* matrix, double* RHSVector, const int size);
-    
+
     void GetBlock(const double* A, double* block, const int x, const int y, const int x1, const int y1, const int matrix_size);
     void PutBlock(double* A, const double* block, const int x, const int y, const int x1, const int y1, const int matrix_size);
 
@@ -36,16 +36,10 @@ namespace Matrix{
 	void MultiplyMatricesNN_4(double* a, double* b, double* c, const int m);
 	void MultiplyMatricesNN(double* a, double* b, double* c, const int n);
     double* SubstractMatrices(double* matrix, const double* matrix2, const int w, const int h);
-    
+
     double GetError(double* vector, const int size);
 
 	int SolveBlock(double* matrix, double* rhs, double* answer, const int size, const int block_size, double* array[]);
-
-	//Matrix operator-(const Matrix& m);
-
-    //Matrix operator*(const Matrix& m);
-    //Matrix operator*(const double& k);
-    //Matrix& operator*=(const double& k);
 }
 
 #endif
